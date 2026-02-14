@@ -1,6 +1,9 @@
 import subprocess
 import json
 import os
+import sys
+from datetime import datetime
+from pathlib import Path
 from rules.base_rules import run_base_rules
 from rules.coroutine_rules import run_coroutine_rules
 from rules.compose_rules import run_compose_rules
@@ -21,6 +24,18 @@ except ImportError:
 except Exception as e:
     LLM_AVAILABLE = False
     print(f"⚠ LLM层初始化失败: {e}")
+
+# 尝试导入HTML报告生成器
+REPORT_GENERATOR_AVAILABLE = False
+try:
+    from report_generator import GitDiffParser, HTMLReportGenerator
+    REPORT_GENERATOR_AVAILABLE = True
+except ImportError as e:
+    REPORT_GENERATOR_AVAILABLE = False
+    print(f"⚠ 报告生成器导入失败: {e}")
+except Exception as e:
+    REPORT_GENERATOR_AVAILABLE = False
+    print(f"⚠ 报告生成器初始化失败: {e}")
 
 
 # 获取 git diff
@@ -94,6 +109,69 @@ def review():
     }
 
     print(json.dumps(result, indent=2))
+
+    # 生成HTML报告
+    if REPORT_GENERATOR_AVAILABLE and diff.strip():
+        try:
+            # 解析git diff
+            diff_data = GitDiffParser.parse(diff)
+            
+            # 生成HTML报告 - 保存到report目录
+            report_dir = Path(__file__).parent / 'report'
+            report_dir.mkdir(exist_ok=True)
+            
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            html_report_path = report_dir / f'code_review_report_{timestamp}.html'
+            json_report_path = report_dir / f'code_review_details_{timestamp}.json'
+            
+            report_path = HTMLReportGenerator.generate_report(
+                diff_data=diff_data,
+                findings=findings,  # 只使用规则扫描的结果
+                score=score,
+                output_path=str(html_report_path)
+            )
+            
+            print(f"\n📊 HTML报告已生成: {report_path}")
+            print(f"📂 打开报告: open {report_path}")
+            print(f"📁 报告目录: {report_dir}")
+            
+            # 同时生成一个更详细的JSON报告
+            detailed_result = {
+                "timestamp": datetime.now().isoformat(),
+                "diff_files_count": len(diff_data),
+                "files_by_package": {},
+                "detailed_findings": all_findings,
+                "score": score,
+                "block_pr": result["block_pr"],
+                "llm_available": LLM_AVAILABLE,
+                "report_generator_available": REPORT_GENERATOR_AVAILABLE
+            }
+            
+            # 按包名分组
+            for file_data in diff_data:
+                package = file_data['package']
+                if package not in detailed_result["files_by_package"]:
+                    detailed_result["files_by_package"][package] = []
+                detailed_result["files_by_package"][package].append({
+                    "file": file_data['new_path'],
+                    "language": file_data['language']
+                })
+            
+            # 保存详细JSON报告到report目录
+            with open(json_report_path, 'w', encoding='utf-8') as f:
+                json.dump(detailed_result, f, indent=2, ensure_ascii=False)
+            
+            print(f"📝 详细JSON报告: {json_report_path}")
+            
+        except Exception as e:
+            print(f"⚠ HTML报告生成失败: {e}")
+            import traceback
+            traceback.print_exc()
+    else:
+        if not REPORT_GENERATOR_AVAILABLE:
+            print("⚠ HTML报告生成器不可用，跳过HTML报告生成")
+        else:
+            print("⚠ 没有代码变更，跳过HTML报告生成")
 
     if result["block_pr"]:
         exit(1)

@@ -16,3 +16,6 @@ local.properties
 /review_skill/.env
 /.idea/
 /.idea/gradle.xml
+
+# 代码审查报告目录
+review_skill/report/
