@@ -11,13 +11,16 @@ from rules.flow_structure_rules import run_flow_structure_rules
 from scorer import calculate_score
 
 # 尝试导入 LLM 层，如果可用的话
+LLM_AVAILABLE = False
 try:
     from llm_layer import semantic_review
     LLM_AVAILABLE = True
 except ImportError:
     LLM_AVAILABLE = False
-except Exception:
+    print("⚠ llm_layer 导入失败，跳过LLM语义分析")
+except Exception as e:
     LLM_AVAILABLE = False
+    print(f"⚠ LLM层初始化失败: {e}")
 
 
 # 获取 git diff
