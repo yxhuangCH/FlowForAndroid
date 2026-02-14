@@ -13,3 +13,6 @@
 .externalNativeBuild
 .cxx
 local.properties
+/review_skill/.env
+/.idea/
+/.idea/gradle.xml

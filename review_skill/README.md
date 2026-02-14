@@ -62,7 +62,7 @@ pip install -r requirements.txt
 
 ```bash
 cd review_skill
-python review.py
+python3 review.py
 ```
 
 注意：需要设置相应的 API Key 环境变量才能使用 LLM 语义增强功能。
