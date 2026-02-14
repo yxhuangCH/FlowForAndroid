@@ -1,7 +1,25 @@
 from openai import OpenAI
 import os
+from pathlib import Path
+
+def load_env_if_exists():
+    """如果存在 .env 文件，加载环境变量"""
+    env_path = Path(__file__).parent / '.env'
+    if env_path.exists():
+        try:
+            from dotenv import load_dotenv
+            load_dotenv(env_path)
+            print(f"✓ 已从 {env_path} 加载环境变量")
+            return True
+        except ImportError:
+            print("⚠ dotenv 未安装，无法从 .env 文件加载")
+            return False
+    return False
 
 def semantic_review(code):
+    # 尝试从 .env 文件加载环境变量
+    load_env_if_exists()
+    
     # 获取 API key，优先使用 DEEPSEEK_API_KEY，回退到 OPENAI_API_KEY
     api_key = os.environ.get("DEEPSEEK_API_KEY") or os.environ.get("OPENAI_API_KEY")
     
