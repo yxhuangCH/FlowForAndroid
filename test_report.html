@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代码审查报告</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header .meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .score-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .score-number {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #fd7e14;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+        
+        .score-label {
+            font-size: 1.2rem;
+            color: #666;
+        }
+        
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .summary-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .summary-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .summary-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+        
+        .package-section {
+            margin-bottom: 2rem;
+        }
+        
+        .package-header {
+            background: #343a40;
+            color: white;
+            padding: 1rem;
+            border-radius: 6px 6px 0 0;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .file-section {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0 0 6px 6px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        
+        .file-header {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-bottom: 1px solid #dee2e6;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .file-path {
+            color: #495057;
+        }
+        
+        .code-container {
+            overflow-x: auto;
+        }
+        
+        .code-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .code-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .line-number {
+            width: 50px;
+            text-align: right;
+            padding: 2px 10px;
+            color: #6c757d;
+            border-right: 1px solid #dee2e6;
+            user-select: none;
+            background-color: #f8f9fa;
+        }
+        
+        .code-line {
+            padding: 2px 10px;
+            white-space: pre;
+        }
+        
+        .line-added {
+            background-color: #d4edda;
+        }
+        
+        .line-removed {
+            background-color: #f8d7da;
+        }
+        
+        .line-problem {
+            background-color: #fff3cd;
+            border-left: 3px solid #ffc107;
+            position: relative;
+        }
+        
+        .problem-marker {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .findings-panel {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .finding-item {
+            padding: 1rem;
+            border-left: 4px solid;
+            margin-bottom: 1rem;
+            background-color: #f8f9fa;
+        }
+        
+        .finding-severity {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: white;
+            margin-right: 0.5rem;
+        }
+        
+        .finding-rule {
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .finding-message {
+            margin-top: 0.5rem;
+            color: #6c757d;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #dee2e6;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .score-number {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>📋 代码审查报告</h1>
+            <p>基于DeepSeek模型的智能代码质量分析</p>
+            <div class="meta">
+                <div>生成时间: 2026-02-19 21:19:15</div>
+                <div>审查工具: Android代码审查技能</div>
+            </div>
+        </header>
+        
+        <div class="score-card">
+            <div class="score-number">65/100</div>
+            <div class="score-label" style="color: #fd7e14;">一般</div>
+        </div>
+        
+        <div class="summary">
+            <div class="summary-item">
+                <div class="summary-number">1</div>
+                <div class="summary-label">包数量</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-number">1</div>
+                <div class="summary-label">文件数量</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-number">2</div>
+                <div class="summary-label">发现问题</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-number">1</div>
+                <div class="summary-label">严重问题</div>
+            </div>
+        </div>
+        
+        
+            <section class="package-section">
+                <div class="package-header">
+                    <span>📁 com.yxhuang.flowforandroid.HomeViewModel</span>
+                    <span>1 个文件</span>
+                </div>
+                <div class="file-section">
+                    <div class="file-header">
+                        <span class="file-path">app/src/main/java/com/yxhuang/flowforandroid/HomeViewModel.kt</span>
+                        <span>1 个问题</span>
+                    </div>
+                    <div class="code-container">
+                        <table class="code-table">
+                            
+            <tr class="">
+                <td class="line-number">...</td>
+                <td class="code-line">// @@ -8,6 +8,17 @@ import kotlinx.coroutines.launch</td>
+            </tr>
+
+            <tr class="">
+                <td class="line-number">1</td>
+                <td class="code-line"></td>
+            </tr>
+
+            <tr class="">
+                <td class="line-number">2</td>
+                <td class="code-line">class HomeViewModel : ViewModel() {</td>
+            </tr>
+
+            <tr class="">
+                <td class="line-number">3</td>
+                <td class="code-line"></td>
+            </tr>
+
+            <tr class="line-added">
+                <td class="line-number">4</td>
+                <td class="code-line">    init {</td>
+            </tr>
+
+            <tr class="line-added line-problem">
+                <td class="line-number">5</td>
+                <td class="code-line">        GlobalScope.launch {<span class="problem-marker" style="background-color: #dc3545;">CRITICAL</span></td>
+            </tr>
+
+            <tr class="line-added">
+                <td class="line-number">6</td>
+                <td class="code-line">            val flow = (1..10).asFlow()</td>
+            </tr>
+
+            <tr class="line-added">
+                <td class="line-number">7</td>
+                <td class="code-line">            flow.collect {</td>
+            </tr>
+
+            <tr class="line-added">
+                <td class="line-number">8</td>
+                <td class="code-line">                println("collect $it")</td>
+            </tr>
+
+            <tr class="line-added">
+                <td class="line-number">9</td>
+                <td class="code-line">                delay(1000)</td>
+            </tr>
+
+            <tr class="line-added">
+                <td class="line-number">10</td>
+                <td class="code-line">            }</td>
+            </tr>
+
+            <tr class="line-added">
+                <td class="line-number">11</td>
+                <td class="code-line">        }</td>
+            </tr>
+
+            <tr class="line-added">
+                <td class="line-number">12</td>
+                <td class="code-line">    }</td>
+            </tr>
+
+            <tr class="">
+                <td class="line-number">13</td>
+                <td class="code-line"></td>
+            </tr>
+
+            <tr class="line-added">
+                <td class="line-number">14</td>
+                <td class="code-line">    override fun onCleared() {</td>
+            </tr>
+
+            <tr class="line-added">
+                <td class="line-number">15</td>
+                <td class="code-line">        super.onCleared()</td>
+            </tr>
+
+            <tr class="line-added">
+                <td class="line-number">16</td>
+                <td class="code-line">    }</td>
+            </tr>
+
+            <tr class="">
+                <td class="line-number">17</td>
+                <td class="code-line">}</td>
+            </tr>
+                        </table>
+                    </div>
+                </div></section>
+        
+        <div class="findings-panel"><h3 style="margin-bottom: 1rem;">📝 发现问题列表</h3>
+            <div class="finding-item" style="border-left-color: #dc3545;">
+                <div>
+                    <span class="finding-severity" style="background-color: #dc3545;">CRITICAL</span>
+                    <span class="finding-rule">no_globalscope</span>
+                    <span style="color: #6c757d; font-size: 0.9rem;"> - app/src/main/java/com/yxhuang/flowforandroid/HomeViewModel.kt</span>
+                </div>
+                <div class="finding-message">GlobalScope is lifecycle unsafe.</div>
+                
+                <div style="margin-top: 0.5rem; font-size: 0.9rem;">
+                    <button class="toggle-refer-btn" data-target="refer-code-0" style="background: #007bff; color: white; border: 1px solid #007bff; padding: 0.25rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s;">
+                        📖 查看正确的代码示例 <span class="toggle-icon">▼</span>
+                    </button>
+                </div>
+                
+                    <div class="refer-code-container" id="refer-code-0" style="display: block; margin-top: 1rem;">
+                        <div class="refer-header" style="background: #f1f3f5; padding: 0.5rem 1rem; border-radius: 4px 4px 0 0; font-weight: bold; font-size: 0.9rem; color: #495057;">
+                            📄 正确代码示例: no_globalscope_refer.kt
+                        </div>
+                        <pre class="refer-code" style="margin: 0; padding: 1rem; background: #f8f9fa; border-radius: 0 0 4px 4px; overflow-x: auto; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 0.85rem; line-height: 1.4; color: #212529; border: 1px solid #dee2e6; border-top: none; max-height: 400px; overflow-y: auto;">
+package com.example.android
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
+
+/**
+ * 正确的协程启动方式 - 使用 ViewModel 的生命周期作用域
+ * 
+ * 错误示例：GlobalScope.launch
+ * 正确示例：viewModelScope.launch
+ * 
+ * 原因：GlobalScope 与组件的生命周期无关，可能导致内存泄漏。
+ *      viewModelScope 与 ViewModel 绑定，ViewModel 销毁时自动取消协程。
+ */
+class CorrectViewModel : ViewModel() {
+    
+    fun fetchData() {
+        // ✅ 正确：使用 viewModelScope 启动协程
+        viewModelScope.launch {
+            // 执行耗时操作
+            val data = repository.fetchData()
+            // 更新 UI
+            _uiState.value = data
+        }
+    }
+    
+    // 对于非 ViewModel 类，可以使用 lifecycleScope
+    class MyFragment : Fragment() {
+        override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+            super.onViewCreated(view, savedInstanceState)
+            
+            // ✅ 正确：使用 lifecycleScope 启动协程
+            lifecycleScope.launch {
+                // 执行与 Fragment 生命周期绑定的操作
+            }
+        }
+    }
+    
+    // 对于自定义作用域，可以使用 CoroutineScope 并配合 SupervisorJob
+    class MyCustomComponent {
+        private val customScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+        
+        fun doWork() {
+            // ✅ 正确：使用自定义作用域
+            customScope.launch {
+                // 执行操作
+            }
+        }
+        
+        fun cleanup() {
+            // 手动取消作用域以释放资源
+            customScope.cancel()
+        }
+    }
+}
+
+/**
+ * 避免使用 GlobalScope 的原因：
+ * 1. 内存泄漏：GlobalScope 启动的协程永远不会自动取消
+ * 2. 生命周期不匹配：与 Android 组件的生命周期无关
+ * 3. 难以测试：无法控制协程的执行和取消
+ * 4. 结构化并发：破坏了结构化并发原则
+ */
+                        </pre>
+                    </div>
+            </div></div>
+        
+        <footer class="footer">
+            <p>© 2026 Android代码审查工具 | 使用DeepSeek模型进行语义分析</p>
+            <p>报告生成时间: 2026-02-19 21:19:15</p>
+        </footer>
+    </div>
+    
+    <script>
+        // 简单的交互功能
+        document.addEventListener('DOMContentLoaded', function() {
+            // 点击文件头部切换代码显示
+            document.querySelectorAll('.file-header').forEach(header => {
+                header.addEventListener('click', function() {
+                    const codeContainer = this.nextElementSibling;
+                    if (codeContainer.style.display === 'none') {
+                        codeContainer.style.display = 'block';
+                        this.querySelector('.toggle-icon').textContent = '▼';
+                    } else {
+                        codeContainer.style.display = 'none';
+                        this.querySelector('.toggle-icon').textContent = '▶';
+                    }
+                });
+                
+                // 添加切换图标
+                const toggleIcon = document.createElement('span');
+                toggleIcon.className = 'toggle-icon';
+                toggleIcon.textContent = '▼';
+                toggleIcon.style.marginLeft = '10px';
+                toggleIcon.style.cursor = 'pointer';
+                this.appendChild(toggleIcon);
+            });
+            
+            // 高亮有问题的行
+            document.querySelectorAll('.line-problem').forEach(line => {
+                line.addEventListener('mouseenter', function() {
+                    this.style.backgroundColor = '#ffeaa7';
+                });
+                line.addEventListener('mouseleave', function() {
+                    this.style.backgroundColor = '#fff3cd';
+                });
+            });
+            
+            // 切换 refer 代码示例显示
+            document.querySelectorAll('.toggle-refer-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-target');
+                    const codeContainer = document.getElementById(targetId);
+                    const toggleIcon = this.querySelector('.toggle-icon');
+                    
+                    if (codeContainer.style.display === 'none' || codeContainer.style.display === '') {
+                        codeContainer.style.display = 'block';
+                        toggleIcon.textContent = '▼';
+                        this.style.backgroundColor = '#007bff';
+                        this.style.color = 'white';
+                    } else {
+                        codeContainer.style.display = 'none';
+                        toggleIcon.textContent = '▶';
+                        this.style.backgroundColor = '';
+                        this.style.color = '#007bff';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

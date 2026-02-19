@@ -156,6 +156,46 @@ class GitDiffParser:
 class HTMLReportGenerator:
     """生成HTML报告"""
     
+    # 规则到 refer 文件的映射
+    RULE_REFER_MAPPING = {
+        # Base rules
+        'no_globalscope': 'no_globalscope_refer.kt',
+        'viewmodel_context': 'viewmodel_context_refer.kt',
+        
+        # Coroutine rules
+        'main_thread_io': 'main_thread_io_refer.kt',
+        'unspecified_scope': 'unspecified_scope_refer.kt',
+        
+        # Compose rules
+        'launched_effect_unit': 'launched_effect_unit_refer.kt',
+        'remember_context': 'remember_context_refer.kt',
+        
+        # Flow rules
+        'flowon_main_dispatcher': 'flowon_main_dispatcher_refer.kt',
+        'missing_flowon': 'flowon_main_dispatcher_refer.kt',  # 使用同一个 refer
+        'channel_flow_usage': 'flowon_main_dispatcher_refer.kt',  # 使用同一个 refer
+        'eager_sharing_detected': 'flowon_main_dispatcher_refer.kt',  # 使用同一个 refer
+        'mutable_stateflow_exposed': 'flowon_main_dispatcher_refer.kt',  # 使用同一个 refer
+        
+        # Flow lifecycle rules
+        'statein_globalscope': 'no_globalscope_refer.kt',  # 类似的全局作用域问题
+        'sharein_globalscope': 'no_globalscope_refer.kt',  # 类似的全局作用域问题
+        'collect_without_repeat': 'flowon_main_dispatcher_refer.kt',  # Flow 生命周期管理
+        'statein_without_viewmodelscope': 'unspecified_scope_refer.kt',  # 作用域问题
+        
+        # Flow structure rules
+        'nested_launch_in_collect': 'flowon_main_dispatcher_refer.kt',  # Flow 结构化并发
+        'launch_inside_flow': 'flowon_main_dispatcher_refer.kt',  # Flow 结构化并发
+        'multiple_collects': 'flowon_main_dispatcher_refer.kt',  # Flow 使用模式
+        'channel_flow_no_awaitclose': 'flowon_main_dispatcher_refer.kt',  # channelFlow 正确使用
+        
+        # Dagger2/Hilt rules
+        'singleton_activity': 'viewmodel_context_refer.kt',  # 类似的依赖注入问题
+        'singleton_component_inject_activity': 'viewmodel_context_refer.kt',  # 依赖注入生命周期
+        'field_injection_detected': 'viewmodel_context_refer.kt',  # 依赖注入最佳实践
+        'provides_without_scope': 'viewmodel_context_refer.kt',  # 依赖注入作用域
+    }
+    
     @staticmethod
     def generate_report(
         diff_data: List[Dict[str, Any]],
@@ -184,12 +224,18 @@ class HTMLReportGenerator:
                     findings_by_file[file_path] = []
                 findings_by_file[file_path].append(finding)
         
+        # 复制 refer_examples 到报告目录
+        report_dir = os.path.dirname(output_path)
+        if report_dir:
+            HTMLReportGenerator._copy_refer_examples_to_report(report_dir)
+        
         # 生成HTML
         html = HTMLReportGenerator._generate_html(
             files_by_package, 
             findings_by_file, 
             score,
-            len(findings)
+            len(findings),
+            report_dir
         )
         
         # 写入文件
@@ -197,6 +243,48 @@ class HTMLReportGenerator:
             f.write(html)
         
         return output_path
+    
+    @staticmethod
+    def _copy_refer_examples_to_report(report_dir: str):
+        """复制 refer_examples 目录到报告目录"""
+        import shutil
+        
+        # 获取当前脚本的绝对路径
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        source_dir = os.path.join(script_dir, 'refer_examples')
+        target_dir = os.path.join(report_dir, 'refer_examples')
+        
+        print(f"🔍 复制 refer 文件 - 源目录: {source_dir}")
+        print(f"🔍 复制 refer 文件 - 目标目录: {target_dir}")
+        
+        if not os.path.exists(source_dir):
+            print(f"⚠ refer_examples 目录不存在: {source_dir}")
+            # 尝试在当前工作目录查找
+            cwd = os.getcwd()
+            alt_source_dir = os.path.join(cwd, 'refer_examples')
+            if os.path.exists(alt_source_dir):
+                print(f"🔍 使用备选源目录: {alt_source_dir}")
+                source_dir = alt_source_dir
+            else:
+                return
+        
+        # 创建目标目录
+        os.makedirs(target_dir, exist_ok=True)
+        
+        # 复制所有 .kt 文件
+        files_copied = 0
+        for filename in os.listdir(source_dir):
+            if filename.endswith('.kt'):
+                source_file = os.path.join(source_dir, filename)
+                target_file = os.path.join(target_dir, filename)
+                try:
+                    shutil.copy2(source_file, target_file)
+                    print(f"✓ 复制 refer 文件: {filename}")
+                    files_copied += 1
+                except Exception as e:
+                    print(f"✗ 复制文件失败 {filename}: {e}")
+        
+        print(f"📦 总计复制 {files_copied} 个 refer 文件到报告目录")
     
     @staticmethod
     def _infer_file_from_finding(finding: Dict[str, Any], diff_data: List[Dict[str, Any]]) -> Optional[str]:
@@ -232,9 +320,16 @@ class HTMLReportGenerator:
         files_by_package: Dict[str, List[Dict[str, Any]]],
         findings_by_file: Dict[str, List[Dict[str, Any]]],
         score: int,
-        total_findings: int
+        total_findings: int,
+        report_dir: str = ''
     ) -> str:
         """生成HTML内容"""
+        
+        # 计算 refer 文件的基础路径
+        if report_dir:
+            refer_base_path = 'refer_examples/'
+        else:
+            refer_base_path = '../refer_examples/'
         
         # 严重性颜色映射
         severity_colors = {
@@ -550,7 +645,7 @@ class HTMLReportGenerator:
         
         {HTMLReportGenerator._generate_package_sections(files_by_package, findings_by_file)}
         
-        {HTMLReportGenerator._generate_findings_section(findings_by_file, severity_colors)}
+        {HTMLReportGenerator._generate_findings_section(findings_by_file, severity_colors, report_dir)}
         
         <footer class="footer">
             <p>© {datetime.now().year} Android代码审查工具 | 使用DeepSeek模型进行语义分析</p>
@@ -590,6 +685,27 @@ class HTMLReportGenerator:
                 }});
                 line.addEventListener('mouseleave', function() {{
                     this.style.backgroundColor = '#fff3cd';
+                }});
+            }});
+            
+            // 切换 refer 代码示例显示
+            document.querySelectorAll('.toggle-refer-btn').forEach(button => {{
+                button.addEventListener('click', function() {{
+                    const targetId = this.getAttribute('data-target');
+                    const codeContainer = document.getElementById(targetId);
+                    const toggleIcon = this.querySelector('.toggle-icon');
+                    
+                    if (codeContainer.style.display === 'none' || codeContainer.style.display === '') {{
+                        codeContainer.style.display = 'block';
+                        toggleIcon.textContent = '▼';
+                        this.style.backgroundColor = '#007bff';
+                        this.style.color = 'white';
+                    }} else {{
+                        codeContainer.style.display = 'none';
+                        toggleIcon.textContent = '▶';
+                        this.style.backgroundColor = '';
+                        this.style.color = '#007bff';
+                    }}
                 }});
             }});
         }});
@@ -687,7 +803,7 @@ class HTMLReportGenerator:
             findings = line_data['findings']
             
             # 转义HTML特殊字符
-            content = content.replace('&', '&').replace('<', '<').replace('>', '>')
+            content = HTMLReportGenerator._escape_html(content)
             
             # 确定行类
             line_class = ''
@@ -721,7 +837,43 @@ class HTMLReportGenerator:
         return '\n'.join(rows)
     
     @staticmethod
-    def _generate_findings_section(findings_by_file, severity_colors):
+    def _escape_html(text: str) -> str:
+        """转义 HTML 特殊字符"""
+        return (text.replace('&', '&')
+                    .replace('<', '<')
+                    .replace('>', '>')
+                    .replace('"', '"')
+                    .replace("'", '&#039;'))
+    
+    @staticmethod
+    def _read_refer_file_content(refer_file_path: str) -> Optional[str]:
+        """读取 refer 文件内容，如果文件不存在则返回 None"""
+        try:
+            if os.path.exists(refer_file_path):
+                with open(refer_file_path, 'r', encoding='utf-8') as f:
+                    return f.read()
+            
+            # 尝试在当前目录的 refer_examples 中查找
+            cwd = os.getcwd()
+            alt_path = os.path.join(cwd, 'refer_examples', os.path.basename(refer_file_path))
+            if os.path.exists(alt_path):
+                with open(alt_path, 'r', encoding='utf-8') as f:
+                    return f.read()
+            
+            # 尝试在脚本目录的 refer_examples 中查找
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            script_path = os.path.join(script_dir, 'refer_examples', os.path.basename(refer_file_path))
+            if os.path.exists(script_path):
+                with open(script_path, 'r', encoding='utf-8') as f:
+                    return f.read()
+            
+            return None
+        except Exception as e:
+            print(f"⚠ 读取 refer 文件失败 {refer_file_path}: {e}")
+            return None
+    
+    @staticmethod
+    def _generate_findings_section(findings_by_file, severity_colors, report_dir=''):
         """生成问题列表部分的HTML"""
         if not findings_by_file:
             return '<div class="findings-panel"><p>🎉 没有发现问题！代码质量优秀。</p></div>'
@@ -738,13 +890,75 @@ class HTMLReportGenerator:
         
         findings_html = '<div class="findings-panel"><h3 style="margin-bottom: 1rem;">📝 发现问题列表</h3>'
         
-        for finding in all_findings:
+        for finding_index, finding in enumerate(all_findings):
             severity = finding.get('severity', 'info')
             rule = finding.get('rule', 'unknown')
             message = finding.get('message', '')
             file_path = finding.get('file_path', '未知文件')
             
             color = severity_colors.get(severity, '#6c757d')
+            
+            # 获取 refer 文件内容
+            refer_content_html = ''
+            refer_file = HTMLReportGenerator.RULE_REFER_MAPPING.get(rule)
+            if refer_file:
+                # 尝试多种方式查找 refer 文件
+                refer_paths_to_try = []
+                
+                # 1. 报告目录中的 refer_examples
+                if report_dir:
+                    refer_paths_to_try.append(os.path.join(report_dir, 'refer_examples', refer_file))
+                
+                # 2. 当前工作目录中的 refer_examples
+                cwd = os.getcwd()
+                refer_paths_to_try.append(os.path.join(cwd, 'refer_examples', refer_file))
+                
+                # 3. 脚本目录中的 refer_examples
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                refer_paths_to_try.append(os.path.join(script_dir, 'refer_examples', refer_file))
+                
+                refer_content = None
+                for refer_path in refer_paths_to_try:
+                    if os.path.exists(refer_path):
+                        try:
+                            with open(refer_path, 'r', encoding='utf-8') as f:
+                                refer_content = f.read()
+                            break
+                        except Exception:
+                            continue
+                
+                if refer_content:
+                    # 所有示例都默认展开
+                    default_expanded = True
+                    display_style = 'block' if default_expanded else 'none'
+                    toggle_icon = '▼' if default_expanded else '▶'
+                    
+                    # 转义 HTML 并添加语法高亮类
+                    escaped_content = HTMLReportGenerator._escape_html(refer_content)
+                    refer_content_html = f'''
+                    <div class="refer-code-container" id="refer-code-{finding_index}" style="display: {display_style}; margin-top: 1rem;">
+                        <div class="refer-header" style="background: #f1f3f5; padding: 0.5rem 1rem; border-radius: 4px 4px 0 0; font-weight: bold; font-size: 0.9rem; color: #495057;">
+                            📄 正确代码示例: {refer_file}
+                        </div>
+                        <pre class="refer-code" style="margin: 0; padding: 1rem; background: #f8f9fa; border-radius: 0 0 4px 4px; overflow-x: auto; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 0.85rem; line-height: 1.4; color: #212529; border: 1px solid #dee2e6; border-top: none; max-height: 400px; overflow-y: auto;">
+{escaped_content}
+                        </pre>
+                    </div>'''
+            
+            # 生成 refer 链接和切换按钮
+            refer_link_html = ''
+            if refer_file:
+                # 所有示例都默认展开
+                default_expanded = True
+                toggle_icon = '▼' if default_expanded else '▶'
+                button_style = 'background: #007bff; color: white;' if default_expanded else 'background: none; color: #007bff;'
+                
+                refer_link_html = f'''
+                <div style="margin-top: 0.5rem; font-size: 0.9rem;">
+                    <button class="toggle-refer-btn" data-target="refer-code-{finding_index}" style="{button_style} border: 1px solid #007bff; padding: 0.25rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s;">
+                        📖 查看正确的代码示例 <span class="toggle-icon">{toggle_icon}</span>
+                    </button>
+                </div>'''
             
             findings_html += f'''
             <div class="finding-item" style="border-left-color: {color};">
@@ -754,6 +968,8 @@ class HTMLReportGenerator:
                     <span style="color: #6c757d; font-size: 0.9rem;"> - {file_path}</span>
                 </div>
                 <div class="finding-message">{message}</div>
+                {refer_link_html}
+                {refer_content_html}
             </div>'''
         
         findings_html += '</div>'
