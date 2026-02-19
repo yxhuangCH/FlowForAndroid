@@ -1,0 +1,18 @@
+{
+  "file_extensions": [".kt", ".kts"],
+  "scan_directories": [
+    "app/src/main/java",
+    "app/src/test/java"
+  ],
+  "exclude_patterns": [
+    "*/build/*",
+    "*/.gradle/*",
+    "*/.idea/*",
+    "*/.git/*",
+    "*/debug/*",
+    "app/src/androidTest/java"
+  ],
+  "enable_semantic_review": true,
+  "generate_html_report": true,
+  "min_score_threshold": 70
+}
