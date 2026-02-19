@@ -12,6 +12,7 @@ from rules.flow_rules import run_flow_rules
 from rules.flow_lifecycle_rules import run_flow_lifecycle_rules
 from rules.flow_structure_rules import run_flow_structure_rules
 from scorer import calculate_score
+from config import get_config
 
 # 尝试导入 LLM 层，如果可用的话
 LLM_AVAILABLE = False
@@ -61,10 +62,23 @@ def get_git_diff():
 
 
 def review():
-    diff = get_git_diff()
+    # 获取配置
+    config = get_config()
+    
+    # 获取原始的git diff
+    raw_diff = get_git_diff()
+    
+    if not raw_diff.strip():
+        print("No changes to review. Git diff is empty.")
+        return
+    
+    # 过滤diff，只扫描符合配置的文件
+    diff = config.filter_git_diff(raw_diff)
     
     if not diff.strip():
-        print("No changes to review. Git diff is empty.")
+        print("没有需要扫描的文件变更。")
+        print(f"配置的文件扩展名: {config.get_file_extensions()}")
+        print(f"配置的扫描目录: {config.get_scan_directories()}")
         return
 
     findings = []
@@ -78,7 +92,7 @@ def review():
     
     # 如果 LLM 可用且有代码变更，进行语义审查
     llm_findings = []
-    if LLM_AVAILABLE and diff.strip():
+    if LLM_AVAILABLE and diff.strip() and config.is_enabled_semantic_review():
         try:
             # 限制代码长度，避免超过 token 限制
             code_sample = diff[:2000]  # 取前2000个字符进行语义分析
@@ -100,12 +114,22 @@ def review():
     all_findings = findings + llm_findings
 
     score = calculate_score(findings)  # 仅基于规则扫描计算分数
+    
+    # 使用配置中的阈值判断是否阻塞PR
+    min_score = config.get_min_score_threshold()
+    block_pr = score < min_score or any(f["severity"] == "critical" for f in findings)
 
     result = {
         "findings": all_findings,
         "score": score,
-        "block_pr": score < 70 or any(f["severity"] == "critical" for f in findings),
-        "llm_available": LLM_AVAILABLE
+        "block_pr": block_pr,
+        "llm_available": LLM_AVAILABLE,
+        "config": {
+            "file_extensions": config.get_file_extensions(),
+            "scan_directories": config.get_scan_directories(),
+            "min_score_threshold": min_score,
+            "filtered_diff": diff != raw_diff  # 是否进行了过滤
+        }
     }
 
     print(json.dumps(result, indent=2))
