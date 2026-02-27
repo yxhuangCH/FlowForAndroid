@@ -102,6 +102,19 @@ def create_legacy_adapter(rule_id: str, legacy_function: Callable, **metadata_kw
     # 更新默认值
     default_metadata.update(metadata_kwargs)
     
+    # 转换字符串为枚举类型
+    if isinstance(default_metadata.get("severity"), str):
+        try:
+            default_metadata["severity"] = RuleSeverity(default_metadata["severity"])
+        except ValueError:
+            default_metadata["severity"] = RuleSeverity.MINOR
+    
+    if isinstance(default_metadata.get("category"), str):
+        try:
+            default_metadata["category"] = RuleCategory(default_metadata["category"])
+        except ValueError:
+            default_metadata["category"] = RuleCategory.CORRECTNESS
+    
     # 创建元数据对象
     metadata = RuleMetadata(**default_metadata)
     

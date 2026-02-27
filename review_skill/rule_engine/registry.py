@@ -174,10 +174,21 @@ class RuleRegistry:
         """获取统计信息"""
         from .interfaces import RuleSeverity
         
+        # 处理 categories 统计，兼容字符串和枚举
+        categories_stats = {}
+        for cat, rules in self._categories.items():
+            if hasattr(cat, 'value'):
+                # 枚举类型
+                cat_key = cat.value
+            else:
+                # 字符串类型
+                cat_key = str(cat)
+            categories_stats[cat_key] = len(rules)
+        
         return {
             "total_rules": self.count_rules(),
             "enabled_rules": len(self.get_all_rules(enabled_only=True)),
-            "categories": {cat.value: len(rules) for cat, rules in self._categories.items()},
+            "categories": categories_stats,
             "tags": {tag: len(rules) for tag, rules in self._tags.items()},
             "severities": {
                 severity.value: len(self.get_rules_by_severity(severity, enabled_only=False))

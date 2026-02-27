@@ -315,8 +315,11 @@ def test_integration():
     """测试集成功能"""
     print("=== 测试集成功能 ===")
     
-    # 创建完整引擎并注册多个规则
+    # 清空之前的注册表（单例模式）
     registry = RuleRegistry()
+    registry.clear()
+    
+    # 创建完整引擎并注册多个规则
     engine = RuleEngine(registry)
     
     # 注册多个规则
@@ -350,7 +353,7 @@ def test_integration():
         
         return findings
     
-    registry.register(empty_function_rule())
+    registry.register(empty_function_rule)
     
     print(f"  注册的规则数: {registry.count_rules()}")
     

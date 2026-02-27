@@ -1,0 +1,301 @@
+"""
+审查运行器，集成新旧系统
+"""
+import json
+import time
+from typing import Dict, Any, List, Optional
+from pathlib import Path
+
+from ..interfaces import Finding, RuleSeverity, RuleCategory
+from ..context import RuleContext
+from ..registry import RuleRegistry
+from ..engine import RuleEngine
+from ..adapters.legacy_adapter import create_legacy_adapter
+
+# 导入旧规则（为了适配）
+OLD_RULES_AVAILABLE = False
+try:
+    from rules.base_rules import run_base_rules
+    from rules.coroutine_rules import run_coroutine_rules
+    from rules.compose_rules import run_compose_rules
+    from rules.hilt_rules import run_hilt_rules
+    from rules.flow_rules import run_flow_rules
+    from rules.flow_lifecycle_rules import run_flow_lifecycle_rules
+    from rules.flow_structure_rules import run_flow_structure_rules
+    OLD_RULES_AVAILABLE = True
+except ImportError as e:
+    OLD_RULES_AVAILABLE = False
+    print(f"⚠ 旧规则导入失败: {e}")
+except Exception as e:
+    OLD_RULES_AVAILABLE = False
+    print(f"⚠ 旧规则初始化失败: {e}")
+
+
+class ReviewRunner:
+    """审查运行器"""
+    
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        self.config = config or {}
+        self.registry = RuleRegistry()
+        self.engine = RuleEngine(self.registry)
+        self._initialized = False
+    
+    def initialize(self):
+        """初始化规则引擎"""
+        if self._initialized:
+            return
+        
+        # 注册新规则
+        self._register_new_rules()
+        
+        # 注册旧规则适配器（如果可用）
+        if OLD_RULES_AVAILABLE:
+            self._register_legacy_rules()
+        
+        # 按配置启用/禁用规则
+        self._configure_rules()
+        
+        self._initialized = True
+    
+    def _register_new_rules(self):
+        """注册新规则"""
+        from ..rules import base_rules
+        
+        # 注册基础规则
+        self.registry.register(base_rules.NoGlobalScopeRule())
+        
+        # 注册装饰器规则（装饰器返回的是规则实例，不是函数）
+        from ..rules.base_rules import viewmodel_context_rule, main_thread_io_rule
+        self.registry.register(viewmodel_context_rule)
+        self.registry.register(main_thread_io_rule)
+        
+        # 注册其他新规则（未来添加）
+        # from ..rules import coroutine_rules, compose_rules, etc.
+    
+    def _register_legacy_rules(self):
+        """注册旧规则适配器"""
+        legacy_rules = [
+            ("no_globalscope_legacy", run_base_rules, {
+                "name": "旧版GlobalScope检测",
+                "description": "旧版GlobalScope检测规则",
+                "severity": "critical",
+                "category": "lifecycle",
+                "enabled": False  # 默认禁用，因为有新版本
+            }),
+            ("coroutine_rules_legacy", run_coroutine_rules, {
+                "name": "旧版协程规则",
+                "description": "旧版协程相关规则",
+                "severity": "major",
+                "category": "concurrency"
+            }),
+            ("compose_rules_legacy", run_compose_rules, {
+                "name": "旧版Compose规则",
+                "description": "旧版Compose相关规则",
+                "severity": "minor",
+                "category": "correctness"
+            }),
+            ("flow_rules_legacy", run_flow_rules, {
+                "name": "旧版Flow规则",
+                "description": "旧版Flow相关规则",
+                "severity": "major",
+                "category": "concurrency"
+            }),
+        ]
+        
+        for rule_id, rule_func, metadata in legacy_rules:
+            adapter = create_legacy_adapter(rule_id, rule_func, **metadata)
+            self.registry.register(adapter)
+    
+    def _configure_rules(self):
+        """根据配置启用/禁用规则"""
+        # 从配置读取规则设置
+        rule_config = self.config.get("rules", {})
+        
+        # 启用/禁用特定规则
+        enabled_rules = rule_config.get("enabled_rules", [])
+        disabled_rules = rule_config.get("disabled_rules", [])
+        
+        for rule_id in enabled_rules:
+            self.registry.enable_rule(rule_id)
+        
+        for rule_id in disabled_rules:
+            self.registry.disable_rule(rule_id)
+        
+        # 按分类启用/禁用
+        enabled_categories = rule_config.get("enabled_categories", [])
+        if enabled_categories:
+            # 禁用所有规则，然后启用指定分类的规则
+            for rule in self.registry.get_all_rules(enabled_only=False):
+                rule.metadata.enabled = False
+            
+            for category_str in enabled_categories:
+                try:
+                    category = RuleCategory(category_str)
+                    rules = self.registry.get_rules_by_category(category, enabled_only=False)
+                    for rule in rules:
+                        rule.metadata.enabled = True
+                except ValueError:
+                    # 忽略无效的分类
+                    pass
+    
+    def review_file(self, file_path: str, code: str, language: str = "kotlin") -> Dict[str, Any]:
+        """
+        审查单个文件
+        
+        Args:
+            file_path: 文件路径
+            code: 代码内容
+            language: 编程语言
+            
+        Returns:
+            审查结果
+        """
+        # 确保已初始化
+        if not self._initialized:
+            self.initialize()
+        
+        # 创建上下文
+        context = RuleContext(
+            code=code,
+            file_path=file_path,
+            language=language,
+            config=self.config
+        )
+        
+        # 执行规则（使用并行执行）
+        parallel = self.config.get("parallel_execution", True)
+        findings, stats = self.engine.execute_all(context, parallel=parallel)
+        
+        # 计算分数
+        score = self._calculate_score(findings)
+        
+        # 转换为旧格式（兼容性）
+        legacy_findings = [f.to_dict() for f in findings]
+        
+        return {
+            "file": file_path,
+            "findings": legacy_findings,
+            "score": score,
+            "stats": stats,
+            "engine_stats": self.registry.get_statistics()
+        }
+    
+    def _calculate_score(self, findings: List[Finding]) -> int:
+        """
+        计算代码质量分数
+        
+        Args:
+            findings: 发现的问题列表
+            
+        Returns:
+            分数（0-100）
+        """
+        if not findings:
+            return 100
+        
+        score = 100
+        
+        for finding in findings:
+            # 获取对应的规则
+            rule = self.registry.get_rule(finding.rule_id)
+            if rule:
+                deduction = rule.get_score_deduction(finding.severity)
+                score -= deduction
+            else:
+                # 默认扣分
+                default_deduction = {
+                    "info": 0,
+                    "minor": 5,
+                    "major": 10,
+                    "critical": 20,
+                    "blocker": 100
+                }.get(finding.severity.value, 5)
+                score -= default_deduction
+        
+        # 确保分数在0-100之间
+        return max(0, min(100, score))
+    
+    def get_engine_info(self) -> Dict[str, Any]:
+        """获取引擎信息"""
+        return {
+            "initialized": self._initialized,
+            "rule_count": self.registry.count_rules(),
+            "statistics": self.registry.get_statistics(),
+            "cache_stats": self.engine.get_cache_stats()
+        }
+    
+    def review_code(self, code: str, file_path: str = "unknown.kt", language: str = "kotlin") -> Dict[str, Any]:
+        """
+        审查代码片段
+        
+        Args:
+            code: 代码内容
+            file_path: 文件路径（默认unknown.kt）
+            language: 编程语言
+            
+        Returns:
+            审查结果
+        """
+        return self.review_file(file_path, code, language)
+    
+    def review_diff(self, diff: str) -> List[Dict[str, Any]]:
+        """
+        审查Git diff
+        
+        Args:
+            diff: Git diff文本
+            
+        Returns:
+            审查结果列表（每个文件一个结果）
+        """
+        if not self._initialized:
+            self.initialize()
+        
+        results = []
+        
+        # 简单解析diff（实际实现需要更复杂的解析）
+        lines = diff.split('\n')
+        current_file = None
+        current_code = []
+        
+        for line in lines:
+            if line.startswith('diff --git'):
+                # 处理上一个文件
+                if current_file and current_code:
+                    file_result = self.review_file(
+                        file_path=current_file,
+                        code='\n'.join(current_code),
+                        language="kotlin"
+                    )
+                    results.append(file_result)
+                
+                # 开始新文件
+                # 提取文件名：diff --git a/path/to/file b/path/to/file
+                parts = line.split()
+                if len(parts) >= 4:
+                    # 取b侧的文件名，去掉b/前缀
+                    b_file = parts[3]
+                    if b_file.startswith('b/'):
+                        current_file = b_file[2:]
+                    else:
+                        current_file = b_file
+                else:
+                    current_file = "unknown"
+                current_code = []
+            elif line.startswith('+') and not line.startswith('+++'):
+                # 新增行
+                current_code.append(line[1:])
+            elif line.startswith(' ') and not line.startswith('---'):
+                # 未变更行
+                current_code.append(line[1:])
+        
+        # 处理最后一个文件
+        if current_file and current_code:
+            file_result = self.review_file(
+                file_path=current_file,
+                code='\n'.join(current_code),
+                language="kotlin"
+            )
+            results.append(file_result)
+        
+        return results

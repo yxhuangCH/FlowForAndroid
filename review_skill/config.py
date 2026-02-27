@@ -206,6 +206,18 @@ class ReviewConfig:
     def get_min_score_threshold(self) -> int:
         """获取最小分数阈值"""
         return self.config['min_score_threshold']
+    
+    def get(self, key, default=None):
+        """字典风格的get方法，用于兼容旧代码"""
+        # 支持嵌套路径，如 "rule_engine.use_new_engine"
+        keys = key.split('.')
+        value = self.config
+        for k in keys:
+            if isinstance(value, dict) and k in value:
+                value = value[k]
+            else:
+                return default
+        return value
 
 
 # 全局配置实例
