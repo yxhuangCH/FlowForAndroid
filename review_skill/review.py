@@ -4,6 +4,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Dict
 from rules.base_rules import run_base_rules
 from rules.coroutine_rules import run_coroutine_rules
 from rules.compose_rules import run_compose_rules
@@ -25,6 +26,19 @@ except ImportError:
 except Exception as e:
     LLM_AVAILABLE = False
     print(f"⚠ LLM层初始化失败: {e}")
+
+# 尝试导入新规则引擎
+NEW_ENGINE_AVAILABLE = False
+try:
+    from rule_engine.integration.review_runner import ReviewRunner
+    NEW_ENGINE_AVAILABLE = True
+    print("✓ 新规则引擎可用")
+except ImportError as e:
+    NEW_ENGINE_AVAILABLE = False
+    print(f"⚠ 新规则引擎导入失败: {e}")
+except Exception as e:
+    NEW_ENGINE_AVAILABLE = False
+    print(f"⚠ 新规则引擎初始化失败: {e}")
 
 # 尝试导入HTML报告生成器
 REPORT_GENERATOR_AVAILABLE = False
@@ -61,6 +75,85 @@ def get_git_diff():
     return ""
 
 
+def _review_with_new_engine(diff: str, config) -> Dict:
+    """使用新引擎进行审查"""
+    try:
+        from rule_engine.integration.review_runner import ReviewRunner
+        
+        # 创建运行器
+        new_engine_config = config.get("rule_engine.new_engine_config", {})
+        runner_config = {
+            "rules": {
+                "enabled_categories": new_engine_config.get("enabled_categories", ["security", "performance", "correctness"]),
+                "disabled_rules": new_engine_config.get("disabled_rules", []),
+                "parallel_execution": new_engine_config.get("parallel_execution", True)
+            }
+        }
+        
+        runner = ReviewRunner(runner_config)
+        runner.initialize()
+        
+        # 审查diff
+        results = runner.review_diff(diff)
+        
+        # 合并所有发现
+        all_findings = []
+        total_score = 0
+        file_count = 0
+        
+        for file_result in results:
+            all_findings.extend(file_result["findings"])
+            total_score += file_result["score"]
+            file_count += 1
+        
+        # 计算平均分
+        score = total_score // file_count if file_count > 0 else 100
+        
+        min_score = config.get_min_score_threshold()
+        block_pr = score < min_score or any(f.get("severity") == "critical" for f in all_findings)
+        
+        return {
+            "findings": all_findings,
+            "score": max(0, score),
+            "block_pr": block_pr,
+            "engine": "new",
+            "file_count": file_count,
+            "engine_info": runner.get_engine_info()
+        }
+    except Exception as e:
+        print(f"⚠ 新规则引擎执行失败: {e}")
+        import traceback
+        traceback.print_exc()
+        # 回退到旧引擎
+        return _review_with_old_engine(diff, config)
+
+
+def _review_with_old_engine(diff: str, config) -> Dict:
+    """使用旧引擎进行审查（原有逻辑）"""
+    findings = []
+    findings += run_base_rules(diff)
+    findings += run_coroutine_rules(diff)
+    findings += run_compose_rules(diff)
+    findings += run_hilt_rules(diff)
+    findings += run_flow_rules(diff)
+    findings += run_flow_lifecycle_rules(diff)
+    findings += run_flow_structure_rules(diff)
+    
+    # 原有计算分数逻辑
+    from scorer import calculate_score
+    score = calculate_score(findings)
+    
+    min_score = config.get_min_score_threshold()
+    block_pr = score < min_score or any(f["severity"] == "critical" for f in findings)
+    
+    return {
+        "findings": findings,
+        "score": score,
+        "block_pr": block_pr,
+        "engine": "old"
+    }
+
+
 def review():
     # 获取配置
     config = get_config()
@@ -81,14 +174,15 @@ def review():
         print(f"配置的扫描目录: {config.get_scan_directories()}")
         return
 
-    findings = []
-    findings += run_base_rules(diff)
-    findings += run_coroutine_rules(diff)
-    findings += run_compose_rules(diff)
-    findings += run_hilt_rules(diff)
-    findings += run_flow_rules(diff)
-    findings += run_flow_lifecycle_rules(diff)
-    findings += run_flow_structure_rules(diff)
+    # 选择引擎
+    use_new_engine = config.get("rule_engine.use_new_engine", False) and NEW_ENGINE_AVAILABLE
+    
+    if use_new_engine:
+        print("使用新规则引擎进行审查...")
+        result = _review_with_new_engine(diff, config)
+    else:
+        print("使用旧规则引擎进行审查...")
+        result = _review_with_old_engine(diff, config)
     
     # 如果 LLM 可用且有代码变更，进行语义审查
     llm_findings = []
@@ -111,25 +205,18 @@ def review():
             })
     
     # 合并所有发现
-    all_findings = findings + llm_findings
+    all_findings = result["findings"] + llm_findings
 
-    score = calculate_score(findings)  # 仅基于规则扫描计算分数
-    
-    # 使用配置中的阈值判断是否阻塞PR
-    min_score = config.get_min_score_threshold()
-    block_pr = score < min_score or any(f["severity"] == "critical" for f in findings)
-
-    result = {
-        "findings": all_findings,
-        "score": score,
-        "block_pr": block_pr,
-        "llm_available": LLM_AVAILABLE,
-        "config": {
-            "file_extensions": config.get_file_extensions(),
-            "scan_directories": config.get_scan_directories(),
-            "min_score_threshold": min_score,
-            "filtered_diff": diff != raw_diff  # 是否进行了过滤
-        }
+    # 更新结果
+    result["findings"] = all_findings
+    result["llm_available"] = LLM_AVAILABLE
+    result["config"] = {
+        "file_extensions": config.get_file_extensions(),
+        "scan_directories": config.get_scan_directories(),
+        "min_score_threshold": config.get_min_score_threshold(),
+        "filtered_diff": diff != raw_diff,
+        "use_new_engine": use_new_engine,
+        "new_engine_available": NEW_ENGINE_AVAILABLE
     }
 
     print(json.dumps(result, indent=2))
@@ -150,8 +237,8 @@ def review():
             
             report_path = HTMLReportGenerator.generate_report(
                 diff_data=diff_data,
-                findings=findings,  # 只使用规则扫描的结果
-                score=score,
+                findings=result["findings"],  # 使用所有发现（包括LLM）
+                score=result["score"],
                 output_path=str(html_report_path)
             )
             
@@ -164,11 +251,13 @@ def review():
                 "timestamp": datetime.now().isoformat(),
                 "diff_files_count": len(diff_data),
                 "files_by_package": {},
-                "detailed_findings": all_findings,
-                "score": score,
+                "detailed_findings": result["findings"],
+                "score": result["score"],
                 "block_pr": result["block_pr"],
                 "llm_available": LLM_AVAILABLE,
-                "report_generator_available": REPORT_GENERATOR_AVAILABLE
+                "report_generator_available": REPORT_GENERATOR_AVAILABLE,
+                "engine": result.get("engine", "unknown"),
+                "file_count": result.get("file_count", 0)
             }
             
             # 按包名分组

@@ -14,5 +14,16 @@
   ],
   "enable_semantic_review": true,
   "generate_html_report": true,
-  "min_score_threshold": 70
+  "min_score_threshold": 70,
+  
+  "rule_engine": {
+    "use_new_engine": true,
+    "new_engine_config": {
+      "enabled_categories": ["security", "performance", "correctness"],
+      "disabled_rules": [],
+      "parallel_execution": true,
+      "cache_enabled": true,
+      "max_workers": 4
+    }
+  }
 }
