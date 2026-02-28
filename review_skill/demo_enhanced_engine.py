@@ -1,0 +1,437 @@
+#!/usr/bin/env python3
+"""
+演示增强版规则引擎功能
+展示并行处理、LRU/TTL缓存、配置支持等高级功能
+"""
+import os
+import sys
+import json
+import time
+
+# 添加当前目录到路径
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from rule_engine.engine_enhanced import EnhancedRuleEngine, LRUCache
+from rule_engine.integration.config_loader import ConfigLoader
+from rule_engine.integration.review_runner import EnhancedReviewRunner
+from rule_engine.registry import RuleRegistry
+from rule_engine.context import RuleContext
+from rule_engine.rules.base_rules import NoGlobalScopeRule
+
+
+def demo_lru_cache():
+    """演示LRU缓存功能"""
+    print("=" * 60)
+    print("演示: LRU/TTL缓存功能")
+    print("=" * 60)
+    
+    # 创建缓存
+    cache = LRUCache(max_size=5, ttl=2)  # 最大5个条目，2秒TTL
+    
+    # 添加数据
+    for i in range(5):
+        cache.set(f"key_{i}", f"value_{i}")
+    
+    print(f"初始缓存大小: {cache.size()}")
+    print(f"获取key_2: {cache.get('key_2')}")
+    print(f"获取不存在的key_10: {cache.get('key_10')}")
+    
+    # 测试LRU淘汰
+    print("\n测试LRU淘汰策略:")
+    cache.get("key_0")  # 访问key_0，使其成为最近使用的
+    cache.set("key_5", "value_5")  # 添加第6个条目
+    
+    print(f"添加key_5后缓存大小: {cache.size()}")
+    print(f"key_1应该被淘汰: {'key_1' not in [k for k, _ in cache.cache.items()]}")
+    print(f"key_0应该还在: {cache.get('key_0') is not None}")
+    
+    # 测试TTL过期
+    print("\n测试TTL过期策略:")
+    cache.set("expiring_key", "expiring_value")
+    print(f"设置expiring_key: {cache.get('expiring_key')}")
+    
+    time.sleep(2.1)  # 等待过期
+    print(f"2.1秒后获取expiring_key: {cache.get('expiring_key')}")
+    
+    # 显示缓存统计
+    stats = cache.stats()
+    print(f"\n缓存统计:")
+    print(f"  大小: {stats['size']}/{stats['max_size']}")
+    print(f"  TTL: {stats['ttl']}秒")
+    print(f"  过期条目数: {stats['expired_count']}")
+    print(f"  前几个键: {stats['keys'][:3]}...")
+
+
+def demo_enhanced_engine():
+    """演示增强版规则引擎"""
+    print("\n" + "=" * 60)
+    print("演示: 增强版规则引擎")
+    print("=" * 60)
+    
+    # 创建注册表并注册规则
+    registry = RuleRegistry()
+    registry.clear()
+    registry.register(NoGlobalScopeRule())
+    
+    # 创建测试代码
+    test_code = """
+fun testFunction1() {
+    GlobalScope.launch {
+        println("测试1")
+    }
+}
+
+fun testFunction2() {
+    GlobalScope.launch {
+        println("测试2")
+    }
+}
+"""
+    
+    # 创建上下文
+    context = RuleContext(
+        code=test_code,
+        file_path="Demo.kt",
+        language="kotlin"
+    )
+    
+    print("测试代码:")
+    print(test_code)
+    print("\n1. 测试顺序执行（禁用缓存）:")
+    config_no_cache = {
+        "cache": {"enabled": False},
+        "parallel": {"enabled": False}
+    }
+    engine_no_cache = EnhancedRuleEngine(registry, config_no_cache)
+    
+    start_time = time.time()
+    findings1, stats1 = engine_no_cache.execute_all(context)
+    exec_time1 = time.time() - start_time
+    
+    print(f"  执行时间: {exec_time1:.4f}秒")
+    print(f"  发现问题数: {len(findings1)}")
+    print(f"  缓存命中: {stats1.get('cache_hits', 0)}, 缓存未命中: {stats1.get('cache_misses', 0)}")
+    
+    print("\n2. 测试缓存功能（启用缓存）:")
+    config_with_cache = {
+        "cache": {"enabled": True, "max_size": 100, "ttl": 10},
+        "parallel": {"enabled": False}
+    }
+    engine_with_cache = EnhancedRuleEngine(registry, config_with_cache)
+    
+    # 第一次执行（填充缓存）
+    start_time = time.time()
+    findings2, stats2 = engine_with_cache.execute_all(context)
+    exec_time2 = time.time() - start_time
+    
+    print(f"  第一次执行时间: {exec_time2:.4f}秒")
+    print(f"  缓存命中: {stats2.get('cache_hits', 0)}, 缓存未命中: {stats2.get('cache_misses', 0)}")
+    
+    # 第二次执行（应该命中缓存）
+    start_time = time.time()
+    findings3, stats3 = engine_with_cache.execute_all(context)
+    exec_time3 = time.time() - start_time
+    
+    print(f"  第二次执行时间: {exec_time3:.4f}秒")
+    print(f"  缓存命中: {stats3.get('cache_hits', 0)}, 缓存未命中: {stats3.get('cache_misses', 0)}")
+    print(f"  性能提升: {(exec_time2 - exec_time3)/exec_time2*100:.1f}%")
+    
+    print("\n3. 测试并行执行:")
+    config_parallel = {
+        "cache": {"enabled": True},
+        "parallel": {"enabled": True, "max_workers": 2}
+    }
+    engine_parallel = EnhancedRuleEngine(registry, config_parallel)
+    
+    start_time = time.time()
+    findings4, stats4 = engine_parallel.execute_all(context)
+    exec_time4 = time.time() - start_time
+    
+    print(f"  并行执行时间: {exec_time4:.4f}秒")
+    print(f"  最大工作线程数: {stats4.get('max_workers', 1)}")
+    print(f"  超时数量: {stats4.get('timeouts', 0)}")
+    
+    # 显示引擎统计
+    engine_stats = engine_parallel.get_engine_stats()
+    print(f"\n引擎统计:")
+    print(f"  总执行次数: {engine_stats['total_executions']}")
+    print(f"  总发现问题数: {engine_stats['total_findings']}")
+    print(f"  缓存启用: {engine_stats['cache_enabled']}")
+    print(f"  并行执行启用: {engine_stats['parallel_enabled']}")
+    print(f"  最大工作线程数: {engine_stats['max_workers']}")
+    print(f"  执行超时: {engine_stats['execution_timeout']}秒")
+    
+    # 显示缓存统计
+    cache_stats = engine_parallel.get_cache_stats()
+    print(f"  缓存统计:")
+    for key, value in cache_stats.items():
+        print(f"    {key}: {value}")
+
+
+def demo_config_loader():
+    """演示配置加载器"""
+    print("\n" + "=" * 60)
+    print("演示: 配置加载器")
+    print("=" * 60)
+    
+    # 创建配置加载器
+    loader = ConfigLoader()
+    
+    print("1. 加载默认配置:")
+    default_config = loader.load(None)
+    
+    engine_config = default_config["rule_engine"]
+    print(f"  规则引擎启用: {engine_config['enabled']}")
+    print(f"  并行执行: {engine_config['parallel_execution']}")
+    print(f"  最大工作线程数: {engine_config['max_workers']}")
+    print(f"  缓存启用: {engine_config['cache_enabled']}")
+    print(f"  缓存最大大小: {engine_config['cache_max_size']}")
+    print(f"  缓存TTL: {engine_config['cache_ttl']}秒")
+    print(f"  执行超时: {engine_config['execution_timeout']}秒")
+    
+    print("\n2. 测试配置方法:")
+    print(f"  获取规则配置: {loader.get_rule_config()}")
+    print(f"  获取日志配置: {loader.get_logging_config()}")
+    print(f"  获取审查配置: {loader.get_review_config()}")
+    
+    print("\n3. 测试环境变量覆盖:")
+    # 设置环境变量
+    os.environ["RULE_ENGINE_MAX_WORKERS"] = "8"
+    os.environ["RULE_ENGINE_CACHE_ENABLED"] = "false"
+    os.environ["REVIEW_MIN_SCORE"] = "85"
+    
+    try:
+        loader2 = ConfigLoader()
+        env_config = loader2.load(None)
+        
+        env_engine_config = env_config["rule_engine"]
+        print(f"  环境变量覆盖后:")
+        print(f"    最大工作线程数: {env_engine_config['max_workers']}")
+        print(f"    缓存启用: {env_engine_config['cache_enabled']}")
+        print(f"    审查最低分数: {env_config['integration']['review']['min_score_threshold']}")
+    finally:
+        # 清理环境变量
+        del os.environ["RULE_ENGINE_MAX_WORKERS"]
+        del os.environ["RULE_ENGINE_CACHE_ENABLED"]
+        del os.environ["REVIEW_MIN_SCORE"]
+
+
+def demo_enhanced_review_runner():
+    """演示增强版审查运行器"""
+    print("\n" + "=" * 60)
+    print("演示: 增强版审查运行器")
+    print("=" * 60)
+    
+    # 创建带配置的运行器
+    config = {
+        "cache": {
+            "enabled": True,
+            "max_size": 100,
+            "ttl": 60
+        },
+        "parallel": {
+            "enabled": True,
+            "max_workers": 2,
+            "execution_timeout": 10
+        },
+        "rules": {
+            "enabled_categories": ["lifecycle", "performance"],
+            "disabled_rules": []
+        }
+    }
+    
+    runner = EnhancedReviewRunner(config)
+    
+    print("1. 初始化运行器:")
+    runner.initialize()
+    
+    engine_info = runner.get_engine_info()
+    print(f"  初始化状态: {engine_info['initialized']}")
+    print(f"  规则数量: {engine_info['rule_count']}")
+    
+    stats = engine_info["statistics"]
+    print(f"  规则统计:")
+    print(f"    总规则: {stats['total_rules']}")
+    print(f"    启用规则: {stats['enabled_rules']}")
+    
+    print("\n2. 审查代码:")
+    test_code = """
+class DemoViewModel : ViewModel() {
+    fun processData() {
+        // 使用GlobalScope（有问题）
+        GlobalScope.launch {
+            // 在主线程执行IO操作（有问题）
+            readFileOnMainThread()
+        }
+    }
+    
+    private fun readFileOnMainThread() {
+        // 模拟IO操作
+        Thread.sleep(100)
+    }
+}
+"""
+    
+    print("测试代码:")
+    print(test_code)
+    
+    result = runner.review_code(test_code, "DemoViewModel.kt", "kotlin")
+    
+    print(f"\n审查结果:")
+    print(f"  文件: {result['file']}")
+    print(f"  分数: {result['score']}/100")
+    print(f"  发现问题数: {len(result['findings'])}")
+    
+    if result['findings']:
+        print("\n  发现的问题:")
+        for i, finding in enumerate(result['findings'], 1):
+            print(f"    {i}. [{finding['severity'].upper()}] {finding['rule']}")
+            print(f"        消息: {finding['message']}")
+            if finding.get('suggestion'):
+                print(f"        建议: {finding['suggestion']}")
+            if finding.get('line_number'):
+                print(f"        行号: {finding['line_number']}")
+    
+    print("\n3. 执行统计:")
+    stats = result['stats']
+    print(f"  总规则数: {stats['total_rules']}")
+    print(f"  执行时间: {stats['execution_time']:.4f}秒")
+    print(f"  缓存命中: {stats.get('cache_hits', 0)}")
+    print(f"  缓存未命中: {stats.get('cache_misses', 0)}")
+    
+    print("\n4. 引擎统计:")
+    engine_stats = runner.get_engine_info()
+    print(f"  缓存统计: {engine_stats['cache_stats']}")
+
+
+def performance_comparison():
+    """性能对比演示"""
+    print("\n" + "=" * 60)
+    print("演示: 性能对比")
+    print("=" * 60)
+    
+    # 创建注册表
+    registry = RuleRegistry()
+    registry.clear()
+    registry.register(NoGlobalScopeRule())
+    
+    # 创建大量测试代码
+    code_lines = []
+    for i in range(20):
+        code_lines.append(f"fun testFunction{i}() {{")
+        code_lines.append(f"    GlobalScope.launch {{")
+        code_lines.append(f"        println(\"测试{i}\")")
+        code_lines.append(f"    }}")
+        code_lines.append(f"}}")
+    
+    large_test_code = "\n".join(code_lines)
+    
+    context = RuleContext(
+        code=large_test_code,
+        file_path="LargeDemo.kt",
+        language="kotlin"
+    )
+    
+    print(f"测试代码大小: {len(large_test_code)} 字符")
+    lines = large_test_code.split('\n')
+    print(f"代码行数: {len(lines)}")
+    
+    # 测试顺序执行（无缓存）
+    print("\n1. 顺序执行（无缓存）:")
+    config_sequential = {
+        "cache": {"enabled": False},
+        "parallel": {"enabled": False}
+    }
+    engine_sequential = EnhancedRuleEngine(registry, config_sequential)
+    
+    start_time = time.time()
+    findings_seq, stats_seq = engine_sequential.execute_all(context)
+    time_seq = time.time() - start_time
+    
+    print(f"  执行时间: {time_seq:.4f}秒")
+    print(f"  发现问题数: {len(findings_seq)}")
+    
+    # 测试并行执行（无缓存）
+    print("\n2. 并行执行（无缓存）:")
+    config_parallel = {
+        "cache": {"enabled": False},
+        "parallel": {"enabled": True, "max_workers": 4}
+    }
+    engine_parallel = EnhancedRuleEngine(registry, config_parallel)
+    
+    start_time = time.time()
+    findings_par, stats_par = engine_parallel.execute_all(context)
+    time_par = time.time() - start_time
+    
+    print(f"  执行时间: {time_par:.4f}秒")
+    print(f"  发现问题数: {len(findings_par)}")
+    print(f"  性能提升: {(time_seq - time_par)/time_seq*100:.1f}%")
+    
+    # 测试并行执行（有缓存）
+    print("\n3. 并行执行（有缓存）:")
+    config_cached = {
+        "cache": {"enabled": True, "max_size": 100, "ttl": 60},
+        "parallel": {"enabled": True, "max_workers": 4}
+    }
+    engine_cached = EnhancedRuleEngine(registry, config_cached)
+    
+    # 第一次执行（填充缓存）
+    start_time = time.time()
+    findings_cached1, stats_cached1 = engine_cached.execute_all(context)
+    time_cached1 = time.time() - start_time
+    
+    # 第二次执行（命中缓存）
+    start_time = time.time()
+    findings_cached2, stats_cached2 = engine_cached.execute_all(context)
+    time_cached2 = time.time() - start_time
+    
+    print(f"  第一次执行时间: {time_cached1:.4f}秒")
+    print(f"  第二次执行时间: {time_cached2:.4f}秒")
+    print(f"  缓存性能提升: {(time_cached1 - time_cached2)/time_cached1*100:.1f}%")
+    
+    print(f"\n总结:")
+    print(f"  顺序执行: {time_seq:.4f}秒")
+    print(f"  并行执行: {time_par:.4f}秒 (提升{((time_seq - time_par)/time_seq*100):.1f}%)")
+    print(f"  缓存执行: {time_cached2:.4f}秒 (提升{((time_seq - time_cached2)/time_seq*100):.1f}%)")
+
+
+def main():
+    """主函数"""
+    print("\n" + "=" * 60)
+    print("统一规则引擎第三阶段: 高级功能和优化")
+    print("=" * 60)
+    print("功能包括:")
+    print("1. 并行处理优化（自动检测CPU核心数，优先级队列）")
+    print("2. LRU/TTL缓存机制（多级缓存支持）")
+    print("3. 配置支持完善（YAML/JSON，环境变量覆盖）")
+    print("=" * 60 + "\n")
+    
+    try:
+        demo_lru_cache()
+        demo_enhanced_engine()
+        demo_config_loader()
+        demo_enhanced_review_runner()
+        performance_comparison()
+        
+        print("\n" + "=" * 60)
+        print("演示完成！")
+        print("=" * 60)
+        print("\n关键特性总结:")
+        print("✅ 并行处理: 自动检测CPU核心数，支持优先级队列")
+        print("✅ LRU缓存: 支持TTL过期，最大条目限制")
+        print("✅ 配置管理: 支持YAML/JSON，环境变量覆盖，配置验证")
+        print("✅ 热重载: 配置文件修改后自动重新加载")
+        print("✅ 统计监控: 缓存命中率，执行时间，规则统计")
+        print("✅ 向后兼容: 支持旧规则适配器")
+        
+    except Exception as e:
+        print(f"\n⚠️ 演示过程中出现错误: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+    
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

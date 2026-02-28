@@ -1,16 +1,18 @@
 """
-审查运行器，集成新旧系统
+审查运行器，集成新旧系统 - 增强版
 """
 import json
 import time
+import logging
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 
 from ..interfaces import Finding, RuleSeverity, RuleCategory
 from ..context import RuleContext
 from ..registry import RuleRegistry
-from ..engine import RuleEngine
+from ..engine_enhanced import EnhancedRuleEngine
 from ..adapters.legacy_adapter import create_legacy_adapter
+from .config_loader import get_config_loader
 
 # 导入旧规则（为了适配）
 OLD_RULES_AVAILABLE = False
@@ -25,19 +27,40 @@ try:
     OLD_RULES_AVAILABLE = True
 except ImportError as e:
     OLD_RULES_AVAILABLE = False
-    print(f"⚠ 旧规则导入失败: {e}")
+    logging.getLogger(__name__).debug(f"旧规则导入失败: {e}")
 except Exception as e:
     OLD_RULES_AVAILABLE = False
-    print(f"⚠ 旧规则初始化失败: {e}")
+    logging.getLogger(__name__).debug(f"旧规则初始化失败: {e}")
+
+logger = logging.getLogger(__name__)
 
 
-class ReviewRunner:
-    """审查运行器"""
+class EnhancedReviewRunner:
+    """增强版审查运行器"""
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         self.config = config or {}
+        
+        # 如果没有配置，从配置加载器获取
+        if not self.config:
+            config_loader = get_config_loader()
+            engine_config = config_loader.get_engine_config()
+            self.config = {
+                "cache": {
+                    "enabled": engine_config.get("cache_enabled", True),
+                    "max_size": engine_config.get("cache_max_size", 1000),
+                    "ttl": engine_config.get("cache_ttl", 3600)
+                },
+                "parallel": {
+                    "enabled": engine_config.get("parallel_execution", True),
+                    "max_workers": engine_config.get("max_workers"),
+                    "execution_timeout": engine_config.get("execution_timeout", 30)
+                },
+                "rules": engine_config.get("rules", {})
+            }
+        
         self.registry = RuleRegistry()
-        self.engine = RuleEngine(self.registry)
+        self.engine = EnhancedRuleEngine(self.registry, self.config)
         self._initialized = False
     
     def initialize(self):
@@ -299,3 +322,7 @@ class ReviewRunner:
             results.append(file_result)
         
         return results
+
+
+# 向后兼容别名
+ReviewRunner = EnhancedReviewRunner
