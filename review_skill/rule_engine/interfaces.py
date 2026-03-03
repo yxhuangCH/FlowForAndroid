@@ -126,19 +126,48 @@ class Rule(ABC):
         """
         if self.metadata.min_score_deduction is not None and self.metadata.max_score_deduction is not None:
             # 使用规则特定的扣分范围
-            return min(self.metadata.max_score_deduction, max(self.metadata.min_score_deduction, {
+            default_deductions = {
                 RuleSeverity.INFO: 0,
                 RuleSeverity.MINOR: 5,
                 RuleSeverity.MAJOR: 10,
                 RuleSeverity.CRITICAL: 20,
                 RuleSeverity.BLOCKER: 100
-            }.get(severity, 0)))
+            }
+            deduction = default_deductions.get(severity, 0)
+            return min(self.metadata.max_score_deduction, max(self.metadata.min_score_deduction, deduction))
         
         # 使用默认扣分
-        return {
+        default_deductions = {
             RuleSeverity.INFO: 0,
             RuleSeverity.MINOR: 5,
             RuleSeverity.MAJOR: 10,
             RuleSeverity.CRITICAL: 20,
             RuleSeverity.BLOCKER: 100
-        }.get(severity, 0)
+        }
+        return default_deductions.get(severity, 0)
+
+
+# 错误处理类
+class ReviewError(Exception):
+    """审查系统基础错误类"""
+    pass
+
+
+class RuleExecutionError(ReviewError):
+    """规则执行错误"""
+    pass
+
+
+class ConfigurationError(ReviewError):
+    """配置错误"""
+    pass
+
+
+class IntegrationError(ReviewError):
+    """集成错误"""
+    pass
+
+
+class ValidationError(ReviewError):
+    """验证错误"""
+    pass

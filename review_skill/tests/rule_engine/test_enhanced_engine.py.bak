@@ -118,7 +118,7 @@ class TestLRUCache(unittest.TestCase):
         self.assertIsNone(cache.get("key2"))
 
 
-class TestRuleEngine(unittest.TestCase):
+class TestEnhancedRuleEngine(unittest.TestCase):
     """测试增强版规则引擎"""
     
     def setUp(self):
@@ -163,7 +163,7 @@ class TestRuleEngine(unittest.TestCase):
     def test_engine_initialization(self):
         """测试引擎初始化"""
         # 默认配置
-        engine = RuleEngine(self.registry)
+        engine = EnhancedRuleEngine(self.registry)
         
         self.assertIsNotNone(engine.registry)
         self.assertIsNotNone(engine.config)
@@ -176,7 +176,7 @@ class TestRuleEngine(unittest.TestCase):
             "cache": {"enabled": False},
             "parallel": {"enabled": False, "max_workers": 2}
         }
-        engine_with_config = RuleEngine(self.registry, config)
+        engine_with_config = EnhancedRuleEngine(self.registry, config)
         self.assertFalse(engine_with_config.cache)
         self.assertFalse(engine_with_config.parallel_enabled)
         self.assertEqual(engine_with_config.max_workers, 2)
@@ -184,7 +184,7 @@ class TestRuleEngine(unittest.TestCase):
     def test_execute_all_sequential(self):
         """测试顺序执行"""
         config = {"parallel": {"enabled": False}}
-        engine = RuleEngine(self.registry, config)
+        engine = EnhancedRuleEngine(self.registry, config)
         
         # 测试代码
         test_code = """
@@ -216,7 +216,7 @@ fun testFunction() {
     def test_execute_all_parallel(self):
         """测试并行执行"""
         config = {"parallel": {"enabled": True, "max_workers": 2}}
-        engine = RuleEngine(self.registry, config)
+        engine = EnhancedRuleEngine(self.registry, config)
         
         test_code = """
 fun testFunction() {
@@ -244,7 +244,7 @@ fun testFunction() {
         config = {
             "cache": {"enabled": True, "max_size": 10, "ttl": 60}
         }
-        engine = RuleEngine(self.registry, config)
+        engine = EnhancedRuleEngine(self.registry, config)
         
         test_code = "fun test() { GlobalScope.launch {} }"
         context = RuleContext(
@@ -274,7 +274,7 @@ fun testFunction() {
     
     def test_engine_stats(self):
         """测试引擎统计"""
-        engine = RuleEngine(self.registry)
+        engine = EnhancedRuleEngine(self.registry)
         
         stats = engine.get_engine_stats()
         
@@ -288,7 +288,7 @@ fun testFunction() {
     
     def test_execute_by_category(self):
         """测试按分类执行"""
-        engine = RuleEngine(self.registry)
+        engine = EnhancedRuleEngine(self.registry)
         
         test_code = "fun test() { GlobalScope.launch {} }"
         context = RuleContext(
@@ -310,7 +310,7 @@ fun testFunction() {
     
     def test_execute_by_priority(self):
         """测试按优先级执行"""
-        engine = RuleEngine(self.registry)
+        engine = EnhancedRuleEngine(self.registry)
         
         test_code = "fun test() { GlobalScope.launch {} }"
         context = RuleContext(
@@ -329,7 +329,7 @@ fun testFunction() {
         config = {
             "cache": {"enabled": True, "max_size": 10, "ttl": 60}
         }
-        engine = RuleEngine(self.registry, config)
+        engine = EnhancedRuleEngine(self.registry, config)
         
         test_code = "fun test() { GlobalScope.launch {} }"
         context = RuleContext(
@@ -690,7 +690,7 @@ def run_tests():
     
     # 添加测试类
     suite.addTest(unittest.makeSuite(TestLRUCache))
-    suite.addTest(unittest.makeSuite(TestRuleEngine))
+    suite.addTest(unittest.makeSuite(TestEnhancedRuleEngine))
     suite.addTest(unittest.makeSuite(TestConfigLoader))
     suite.addTest(unittest.makeSuite(TestEnhancedReviewRunner))
     

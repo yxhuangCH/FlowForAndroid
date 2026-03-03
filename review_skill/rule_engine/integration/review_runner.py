@@ -10,7 +10,7 @@ from pathlib import Path
 from ..interfaces import Finding, RuleSeverity, RuleCategory
 from ..context import RuleContext
 from ..registry import RuleRegistry
-from ..engine_enhanced import EnhancedRuleEngine
+from ..engine import RuleEngine
 from ..adapters.legacy_adapter import create_legacy_adapter
 from .config_loader import get_config_loader
 
@@ -60,7 +60,7 @@ class EnhancedReviewRunner:
             }
         
         self.registry = RuleRegistry()
-        self.engine = EnhancedRuleEngine(self.registry, self.config)
+        self.engine = RuleEngine(self.registry, self.config)
         self._initialized = False
     
     def initialize(self):
