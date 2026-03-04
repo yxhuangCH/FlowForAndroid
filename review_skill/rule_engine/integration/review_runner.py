@@ -108,8 +108,72 @@ class EnhancedReviewRunner:
         except ImportError as e:
             logger.warning(f"Compose规则导入失败: {e}")
         
-        # 注册其他新规则（未来添加）
-        # from ..rules import flow_rules, hilt_rules, etc.
+        # 注册迁移的Flow规则
+        try:
+            from ..rules.flow_rules import (
+                flowon_main_dispatcher_rule,
+                missing_flowon_for_io_rule,
+                channel_flow_usage_rule,
+                eager_sharing_detected_rule,
+                mutable_stateflow_exposed_rule
+            )
+            self.registry.register(flowon_main_dispatcher_rule)
+            self.registry.register(missing_flowon_for_io_rule)
+            self.registry.register(channel_flow_usage_rule)
+            self.registry.register(eager_sharing_detected_rule)
+            self.registry.register(mutable_stateflow_exposed_rule)
+        except ImportError as e:
+            logger.warning(f"Flow规则导入失败: {e}")
+        
+        # 注册迁移的Flow生命周期规则
+        try:
+            from ..rules.flow_lifecycle_rules import (
+                statein_globalscope_rule,
+                sharein_globalscope_rule,
+                collect_without_repeat_rule,
+                statein_without_viewmodelscope_rule
+            )
+            self.registry.register(statein_globalscope_rule)
+            self.registry.register(sharein_globalscope_rule)
+            self.registry.register(collect_without_repeat_rule)
+            self.registry.register(statein_without_viewmodelscope_rule)
+        except ImportError as e:
+            logger.warning(f"Flow生命周期规则导入失败: {e}")
+        
+        # 注册迁移的Flow结构规则
+        try:
+            from ..rules.flow_structure_rules import (
+                nested_launch_in_collect_rule,
+                launch_inside_flow_rule,
+                multiple_collects_rule,
+                channel_flow_no_awaitclose_rule
+            )
+            self.registry.register(nested_launch_in_collect_rule)
+            self.registry.register(launch_inside_flow_rule)
+            self.registry.register(multiple_collects_rule)
+            self.registry.register(channel_flow_no_awaitclose_rule)
+        except ImportError as e:
+            logger.warning(f"Flow结构规则导入失败: {e}")
+        
+        # 注册迁移的Hilt规则
+        try:
+            from ..rules.hilt_rules import singleton_activity_rule
+            self.registry.register(singleton_activity_rule)
+        except ImportError as e:
+            logger.warning(f"Hilt规则导入失败: {e}")
+        
+        # 注册迁移的Dagger2规则
+        try:
+            from ..rules.dagger2_rules import (
+                singleton_component_inject_activity_rule,
+                field_injection_detected_rule,
+                provides_without_scope_rule
+            )
+            self.registry.register(singleton_component_inject_activity_rule)
+            self.registry.register(field_injection_detected_rule)
+            self.registry.register(provides_without_scope_rule)
+        except ImportError as e:
+            logger.warning(f"Dagger2规则导入失败: {e}")
     
     def _register_legacy_rules(self):
         """注册旧规则适配器"""
