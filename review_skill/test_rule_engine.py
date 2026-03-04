@@ -17,8 +17,7 @@ from rule_engine import (
     RuleCategory,
     Finding,
     NoGlobalScopeRule,
-    viewmodel_context_rule,
-    create_legacy_adapter
+    viewmodel_context_rule
 )
 
 
@@ -190,41 +189,49 @@ fun testFunction() {
 
 
 def test_adapters():
-    """测试适配器"""
-    print("=== 测试适配器 ===")
+    """测试适配器（装饰器）"""
+    print("=== 测试适配器（装饰器） ===")
     
-    # 创建旧规则函数（模拟现有规则）
-    def old_rule_function(code):
+    from rule_engine.adapters import rule
+    
+    @rule(
+        rule_id="simple_adapter_test",
+        name="简单适配器测试",
+        description="测试装饰器创建规则的功能",
+        severity=RuleSeverity.INFO,
+        category=RuleCategory.STYLE,
+        tags=["test", "adapter"]
+    )
+    def simple_adapter_rule(context):
+        """简单的装饰器规则测试"""
         findings = []
-        if "deprecated" in code.lower():
-            findings.append({
-                "severity": "major",
-                "rule": "deprecated_api",
-                "message": "检测到已弃用的API",
-                "suggestion": "使用新的API替代"
-            })
+        
+        lines = context.get_lines()
+        for i, line in enumerate(lines, 1):
+            if "adapter_test" in line.lower():
+                findings.append(Finding(
+                    rule_id="simple_adapter_test",
+                    message="发现适配器测试标记",
+                    severity=RuleSeverity.INFO,
+                    file_path=context.file_path,
+                    line_number=i,
+                    code_snippet=line
+                ))
+        
         return findings
     
-    # 创建适配器
-    adapter = create_legacy_adapter(
-        rule_id="deprecated_api",
-        legacy_function=old_rule_function,
-        name="弃用API检测",
-        description="检测已弃用的API使用",
-        severity=RuleSeverity.MAJOR,
-        category=RuleCategory.CORRECTNESS,
-        tags=["legacy", "api"]
-    )
+    # 测试装饰器创建的规则
+    rule_instance = simple_adapter_rule
     
-    print(f"  适配器规则ID: {adapter.metadata.id}")
-    print(f"  适配器名称: {adapter.metadata.name}")
-    print(f"  适配器描述: {adapter.metadata.description}")
+    print(f"  适配器规则ID: {rule_instance.metadata.id}")
+    print(f"  适配器规则名称: {rule_instance.metadata.name}")
+    print(f"  适配器规则分类: {rule_instance.metadata.category.value}")
     
-    # 测试适配器执行
+    # 测试规则执行
     test_code = """
-fun testFunction() {
-    // 这里使用了已弃用的API
-    someDeprecatedFunction()
+// adapter_test: 这是一个测试标记
+fun testAdapterFunction() {
+    println("适配器测试")
 }
 """
     
@@ -234,18 +241,18 @@ fun testFunction() {
         language="kotlin"
     )
     
-    findings = adapter.check(context)
+    findings = rule_instance.check(context)
     
     print(f"  适配器发现的问题数: {len(findings)}")
     
     if findings:
         for finding in findings:
             print(f"    问题: {finding.message}")
-            print(f"    建议: {finding.suggestion}")
+            print(f"    行号: {finding.line_number}")
     
     print("✓ 适配器测试通过\n")
     
-    return True
+    return len(findings) > 0
 
 
 def test_decorators():

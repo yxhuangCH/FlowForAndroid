@@ -11,7 +11,6 @@ from ..interfaces import Finding, RuleSeverity, RuleCategory
 from ..context import RuleContext
 from ..registry import RuleRegistry
 from ..engine import RuleEngine
-from ..adapters.legacy_adapter import create_legacy_adapter
 from .config_loader import get_config_loader
 
 # 所有规则已迁移到新引擎，不再需要导入旧规则
@@ -161,38 +160,9 @@ class EnhancedReviewRunner:
             logger.warning(f"Dagger2规则导入失败: {e}")
     
     def _register_legacy_rules(self):
-        """注册旧规则适配器"""
-        legacy_rules = [
-            ("no_globalscope_legacy", run_base_rules, {
-                "name": "旧版GlobalScope检测",
-                "description": "旧版GlobalScope检测规则",
-                "severity": "critical",
-                "category": "lifecycle",
-                "enabled": False  # 默认禁用，因为有新版本
-            }),
-            ("coroutine_rules_legacy", run_coroutine_rules, {
-                "name": "旧版协程规则",
-                "description": "旧版协程相关规则",
-                "severity": "major",
-                "category": "concurrency"
-            }),
-            ("compose_rules_legacy", run_compose_rules, {
-                "name": "旧版Compose规则",
-                "description": "旧版Compose相关规则",
-                "severity": "minor",
-                "category": "correctness"
-            }),
-            ("flow_rules_legacy", run_flow_rules, {
-                "name": "旧版Flow规则",
-                "description": "旧版Flow相关规则",
-                "severity": "major",
-                "category": "concurrency"
-            }),
-        ]
-        
-        for rule_id, rule_func, metadata in legacy_rules:
-            adapter = create_legacy_adapter(rule_id, rule_func, **metadata)
-            self.registry.register(adapter)
+        """注册旧规则适配器（已禁用，legacy_adapter 已移除）"""
+        logger.warning("legacy_adapter 已移除，旧规则适配器功能已禁用")
+        # 此功能已不再需要，所有规则已迁移到新引擎格式
     
     def _configure_rules(self):
         """根据配置启用/禁用规则"""

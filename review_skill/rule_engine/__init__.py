@@ -17,8 +17,6 @@ from .engine import RuleEngine
 
 # 适配器
 from .adapters import (
-    LegacyRuleAdapter,
-    create_legacy_adapter,
     rule,
     pattern_rule
 )
@@ -46,8 +44,6 @@ __all__ = [
     'RuleEngine',
     
     # 适配器
-    'LegacyRuleAdapter',
-    'create_legacy_adapter',
     'rule',
     'pattern_rule',
     
