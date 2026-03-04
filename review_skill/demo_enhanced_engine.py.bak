@@ -102,7 +102,7 @@ fun testFunction2() {
         "cache": {"enabled": False},
         "parallel": {"enabled": False}
     }
-    engine_no_cache = RuleEngine(registry, config_no_cache)
+    engine_no_cache = EnhancedRuleEngine(registry, config_no_cache)
     
     start_time = time.time()
     findings1, stats1 = engine_no_cache.execute_all(context)
@@ -117,7 +117,7 @@ fun testFunction2() {
         "cache": {"enabled": True, "max_size": 100, "ttl": 10},
         "parallel": {"enabled": False}
     }
-    engine_with_cache = RuleEngine(registry, config_with_cache)
+    engine_with_cache = EnhancedRuleEngine(registry, config_with_cache)
     
     # 第一次执行（填充缓存）
     start_time = time.time()
@@ -141,7 +141,7 @@ fun testFunction2() {
         "cache": {"enabled": True},
         "parallel": {"enabled": True, "max_workers": 2}
     }
-    engine_parallel = RuleEngine(registry, config_parallel)
+    engine_parallel = EnhancedRuleEngine(registry, config_parallel)
     
     start_time = time.time()
     findings4, stats4 = engine_parallel.execute_all(context)
@@ -342,7 +342,7 @@ def performance_comparison():
         "cache": {"enabled": False},
         "parallel": {"enabled": False}
     }
-    engine_sequential = RuleEngine(registry, config_sequential)
+    engine_sequential = EnhancedRuleEngine(registry, config_sequential)
     
     start_time = time.time()
     findings_seq, stats_seq = engine_sequential.execute_all(context)
@@ -357,7 +357,7 @@ def performance_comparison():
         "cache": {"enabled": False},
         "parallel": {"enabled": True, "max_workers": 4}
     }
-    engine_parallel = RuleEngine(registry, config_parallel)
+    engine_parallel = EnhancedRuleEngine(registry, config_parallel)
     
     start_time = time.time()
     findings_par, stats_par = engine_parallel.execute_all(context)
@@ -373,7 +373,7 @@ def performance_comparison():
         "cache": {"enabled": True, "max_size": 100, "ttl": 60},
         "parallel": {"enabled": True, "max_workers": 4}
     }
-    engine_cached = RuleEngine(registry, config_cached)
+    engine_cached = EnhancedRuleEngine(registry, config_cached)
     
     # 第一次执行（填充缓存）
     start_time = time.time()

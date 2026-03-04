@@ -10,27 +10,12 @@ from pathlib import Path
 from ..interfaces import Finding, RuleSeverity, RuleCategory
 from ..context import RuleContext
 from ..registry import RuleRegistry
-from ..engine_enhanced import EnhancedRuleEngine
+from ..engine import RuleEngine
 from ..adapters.legacy_adapter import create_legacy_adapter
 from .config_loader import get_config_loader
 
-# 导入旧规则（为了适配）
+# 所有规则已迁移到新引擎，不再需要导入旧规则
 OLD_RULES_AVAILABLE = False
-try:
-    from rules.base_rules import run_base_rules
-    from rules.coroutine_rules import run_coroutine_rules
-    from rules.compose_rules import run_compose_rules
-    from rules.hilt_rules import run_hilt_rules
-    from rules.flow_rules import run_flow_rules
-    from rules.flow_lifecycle_rules import run_flow_lifecycle_rules
-    from rules.flow_structure_rules import run_flow_structure_rules
-    OLD_RULES_AVAILABLE = True
-except ImportError as e:
-    OLD_RULES_AVAILABLE = False
-    logging.getLogger(__name__).debug(f"旧规则导入失败: {e}")
-except Exception as e:
-    OLD_RULES_AVAILABLE = False
-    logging.getLogger(__name__).debug(f"旧规则初始化失败: {e}")
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +45,7 @@ class EnhancedReviewRunner:
             }
         
         self.registry = RuleRegistry()
-        self.engine = EnhancedRuleEngine(self.registry, self.config)
+        self.engine = RuleEngine(self.registry, self.config)
         self._initialized = False
     
     def initialize(self):
@@ -71,9 +56,9 @@ class EnhancedReviewRunner:
         # 注册新规则
         self._register_new_rules()
         
-        # 注册旧规则适配器（如果可用）
-        if OLD_RULES_AVAILABLE:
-            self._register_legacy_rules()
+        # 注册旧规则适配器（如果可用）- 已禁用，所有规则已迁移到新引擎
+        # if OLD_RULES_AVAILABLE:
+        #     self._register_legacy_rules()
         
         # 按配置启用/禁用规则
         self._configure_rules()
@@ -92,8 +77,88 @@ class EnhancedReviewRunner:
         self.registry.register(viewmodel_context_rule)
         self.registry.register(main_thread_io_rule)
         
-        # 注册其他新规则（未来添加）
-        # from ..rules import coroutine_rules, compose_rules, etc.
+        # 注册迁移的协程规则
+        try:
+            from ..rules.coroutine_rules import coroutine_main_thread_io_rule, unspecified_scope_rule
+            self.registry.register(coroutine_main_thread_io_rule)
+            self.registry.register(unspecified_scope_rule)
+        except ImportError as e:
+            logger.warning(f"协程规则导入失败: {e}")
+        
+        # 注册迁移的Compose规则
+        try:
+            from ..rules.compose_rules import launched_effect_unit_rule, remember_context_rule
+            self.registry.register(launched_effect_unit_rule)
+            self.registry.register(remember_context_rule)
+        except ImportError as e:
+            logger.warning(f"Compose规则导入失败: {e}")
+        
+        # 注册迁移的Flow规则
+        try:
+            from ..rules.flow_rules import (
+                flowon_main_dispatcher_rule,
+                missing_flowon_for_io_rule,
+                channel_flow_usage_rule,
+                eager_sharing_detected_rule,
+                mutable_stateflow_exposed_rule
+            )
+            self.registry.register(flowon_main_dispatcher_rule)
+            self.registry.register(missing_flowon_for_io_rule)
+            self.registry.register(channel_flow_usage_rule)
+            self.registry.register(eager_sharing_detected_rule)
+            self.registry.register(mutable_stateflow_exposed_rule)
+        except ImportError as e:
+            logger.warning(f"Flow规则导入失败: {e}")
+        
+        # 注册迁移的Flow生命周期规则
+        try:
+            from ..rules.flow_lifecycle_rules import (
+                statein_globalscope_rule,
+                sharein_globalscope_rule,
+                collect_without_repeat_rule,
+                statein_without_viewmodelscope_rule
+            )
+            self.registry.register(statein_globalscope_rule)
+            self.registry.register(sharein_globalscope_rule)
+            self.registry.register(collect_without_repeat_rule)
+            self.registry.register(statein_without_viewmodelscope_rule)
+        except ImportError as e:
+            logger.warning(f"Flow生命周期规则导入失败: {e}")
+        
+        # 注册迁移的Flow结构规则
+        try:
+            from ..rules.flow_structure_rules import (
+                nested_launch_in_collect_rule,
+                launch_inside_flow_rule,
+                multiple_collects_rule,
+                channel_flow_no_awaitclose_rule
+            )
+            self.registry.register(nested_launch_in_collect_rule)
+            self.registry.register(launch_inside_flow_rule)
+            self.registry.register(multiple_collects_rule)
+            self.registry.register(channel_flow_no_awaitclose_rule)
+        except ImportError as e:
+            logger.warning(f"Flow结构规则导入失败: {e}")
+        
+        # 注册迁移的Hilt规则
+        try:
+            from ..rules.hilt_rules import singleton_activity_rule
+            self.registry.register(singleton_activity_rule)
+        except ImportError as e:
+            logger.warning(f"Hilt规则导入失败: {e}")
+        
+        # 注册迁移的Dagger2规则
+        try:
+            from ..rules.dagger2_rules import (
+                singleton_component_inject_activity_rule,
+                field_injection_detected_rule,
+                provides_without_scope_rule
+            )
+            self.registry.register(singleton_component_inject_activity_rule)
+            self.registry.register(field_injection_detected_rule)
+            self.registry.register(provides_without_scope_rule)
+        except ImportError as e:
+            logger.warning(f"Dagger2规则导入失败: {e}")
     
     def _register_legacy_rules(self):
         """注册旧规则适配器"""

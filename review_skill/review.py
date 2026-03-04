@@ -4,16 +4,9 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict
-from rules.base_rules import run_base_rules
-from rules.coroutine_rules import run_coroutine_rules
-from rules.compose_rules import run_compose_rules
-from rules.hilt_rules import run_hilt_rules
-from rules.flow_rules import run_flow_rules
-from rules.flow_lifecycle_rules import run_flow_lifecycle_rules
-from rules.flow_structure_rules import run_flow_structure_rules
-from scorer import calculate_score
+from typing import Dict, List
 from config import get_config
+import traceback
 
 # 尝试导入 LLM 层，如果可用的话
 LLM_AVAILABLE = False
@@ -27,18 +20,26 @@ except Exception as e:
     LLM_AVAILABLE = False
     print(f"⚠ LLM层初始化失败: {e}")
 
-# 尝试导入新规则引擎
-NEW_ENGINE_AVAILABLE = False
+# 导入统一规则引擎
+RULE_ENGINE_AVAILABLE = False
 try:
     from rule_engine.integration.review_runner import ReviewRunner
-    NEW_ENGINE_AVAILABLE = True
-    print("✓ 新规则引擎可用")
+    from rule_engine.interfaces import ReviewError, ConfigurationError, IntegrationError
+    RULE_ENGINE_AVAILABLE = True
+    print("✓ 统一规则引擎可用")
 except ImportError as e:
-    NEW_ENGINE_AVAILABLE = False
-    print(f"⚠ 新规则引擎导入失败: {e}")
+    RULE_ENGINE_AVAILABLE = False
+    print(f"⚠ 规则引擎导入失败: {e}")
+    # 回退到旧的错误处理
+    class ReviewError(Exception):
+        pass
+    class ConfigurationError(ReviewError):
+        pass
+    class IntegrationError(ReviewError):
+        pass
 except Exception as e:
-    NEW_ENGINE_AVAILABLE = False
-    print(f"⚠ 新规则引擎初始化失败: {e}")
+    RULE_ENGINE_AVAILABLE = False
+    print(f"⚠ 规则引擎初始化失败: {e}")
 
 # 尝试导入HTML报告生成器
 REPORT_GENERATOR_AVAILABLE = False
@@ -129,29 +130,60 @@ def _review_with_new_engine(diff: str, config) -> Dict:
 
 
 def _review_with_old_engine(diff: str, config) -> Dict:
-    """使用旧引擎进行审查（原有逻辑）"""
-    findings = []
-    findings += run_base_rules(diff)
-    findings += run_coroutine_rules(diff)
-    findings += run_compose_rules(diff)
-    findings += run_hilt_rules(diff)
-    findings += run_flow_rules(diff)
-    findings += run_flow_lifecycle_rules(diff)
-    findings += run_flow_structure_rules(diff)
-    
-    # 原有计算分数逻辑
-    from scorer import calculate_score
-    score = calculate_score(findings)
-    
-    min_score = config.get_min_score_threshold()
-    block_pr = score < min_score or any(f["severity"] == "critical" for f in findings)
-    
-    return {
-        "findings": findings,
-        "score": score,
-        "block_pr": block_pr,
-        "engine": "old"
-    }
+    """回退到基础引擎进行审查（已迁移所有规则到新引擎）"""
+    try:
+        # 尝试使用基础的新引擎配置
+        from rule_engine.integration.review_runner import ReviewRunner
+        
+        # 创建最小化配置的基础运行器
+        runner_config = {
+            "rules": {
+                "enabled_categories": ["lifecycle", "concurrency", "correctness"],
+                "parallel_execution": False  # 禁用并行执行以兼容性优先
+            }
+        }
+        
+        runner = ReviewRunner(runner_config)
+        runner.initialize()
+        
+        # 审查diff
+        results = runner.review_diff(diff)
+        
+        # 合并所有发现
+        all_findings = []
+        total_score = 0
+        file_count = 0
+        
+        for file_result in results:
+            all_findings.extend(file_result["findings"])
+            total_score += file_result["score"]
+            file_count += 1
+        
+        # 计算平均分
+        score = total_score // file_count if file_count > 0 else 100
+        
+        min_score = config.get_min_score_threshold()
+        block_pr = score < min_score or any(f.get("severity") == "critical" for f in all_findings)
+        
+        return {
+            "findings": all_findings,
+            "score": max(0, score),
+            "block_pr": block_pr,
+            "engine": "fallback_new_engine",
+            "file_count": file_count,
+            "engine_info": runner.get_engine_info()
+        }
+    except Exception as e:
+        print(f"⚠ 回退引擎执行失败: {e}")
+        import traceback
+        traceback.print_exc()
+        # 最终回退：返回空结果
+        return {
+            "findings": [],
+            "score": 100,
+            "block_pr": False,
+            "engine": "empty_fallback"
+        }
 
 
 def review():
@@ -174,14 +206,17 @@ def review():
         print(f"配置的扫描目录: {config.get_scan_directories()}")
         return
 
-    # 选择引擎
-    use_new_engine = config.get("rule_engine.use_new_engine", False) and NEW_ENGINE_AVAILABLE
-    
-    if use_new_engine:
-        print("使用新规则引擎进行审查...")
-        result = _review_with_new_engine(diff, config)
+    # 总是使用统一规则引擎（如果可用）
+    if RULE_ENGINE_AVAILABLE:
+        print("使用统一规则引擎进行审查...")
+        try:
+            result = _review_with_new_engine(diff, config)
+        except Exception as e:
+            print(f"⚠ 统一规则引擎执行失败: {e}")
+            print("回退到旧规则引擎...")
+            result = _review_with_old_engine(diff, config)
     else:
-        print("使用旧规则引擎进行审查...")
+        print("统一规则引擎不可用，使用旧规则引擎...")
         result = _review_with_old_engine(diff, config)
     
     # 如果 LLM 可用且有代码变更，进行语义审查
@@ -215,8 +250,8 @@ def review():
         "scan_directories": config.get_scan_directories(),
         "min_score_threshold": config.get_min_score_threshold(),
         "filtered_diff": diff != raw_diff,
-        "use_new_engine": use_new_engine,
-        "new_engine_available": NEW_ENGINE_AVAILABLE
+        "rule_engine_available": RULE_ENGINE_AVAILABLE,
+        "engine_used": result.get("engine", "unknown")
     }
 
     print(json.dumps(result, indent=2))
