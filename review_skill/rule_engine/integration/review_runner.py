@@ -14,23 +14,8 @@ from ..engine import RuleEngine
 from ..adapters.legacy_adapter import create_legacy_adapter
 from .config_loader import get_config_loader
 
-# 导入旧规则（为了适配）
+# 所有规则已迁移到新引擎，不再需要导入旧规则
 OLD_RULES_AVAILABLE = False
-try:
-    from rules.base_rules import run_base_rules
-    from rules.coroutine_rules import run_coroutine_rules
-    from rules.compose_rules import run_compose_rules
-    from rules.hilt_rules import run_hilt_rules
-    from rules.flow_rules import run_flow_rules
-    from rules.flow_lifecycle_rules import run_flow_lifecycle_rules
-    from rules.flow_structure_rules import run_flow_structure_rules
-    OLD_RULES_AVAILABLE = True
-except ImportError as e:
-    OLD_RULES_AVAILABLE = False
-    logging.getLogger(__name__).debug(f"旧规则导入失败: {e}")
-except Exception as e:
-    OLD_RULES_AVAILABLE = False
-    logging.getLogger(__name__).debug(f"旧规则初始化失败: {e}")
 
 logger = logging.getLogger(__name__)
 
@@ -71,9 +56,9 @@ class EnhancedReviewRunner:
         # 注册新规则
         self._register_new_rules()
         
-        # 注册旧规则适配器（如果可用）
-        if OLD_RULES_AVAILABLE:
-            self._register_legacy_rules()
+        # 注册旧规则适配器（如果可用）- 已禁用，所有规则已迁移到新引擎
+        # if OLD_RULES_AVAILABLE:
+        #     self._register_legacy_rules()
         
         # 按配置启用/禁用规则
         self._configure_rules()

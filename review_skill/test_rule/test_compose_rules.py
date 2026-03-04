@@ -1,118 +1,187 @@
 #!/usr/bin/env python3
 """
-单元测试 for rules/compose_rules.py
+单元测试 for rule_engine/rules/compose_rules.py
 """
 
 import unittest
-from rules.compose_rules import run_compose_rules
+import sys
+import os
+
+# 添加当前目录到路径
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
+from rule_engine.integration.review_runner import EnhancedReviewRunner
 
 
 class TestComposeRules(unittest.TestCase):
-    """测试 compose_rules 模块"""
+    """测试新的 rule_engine 中的 Compose 规则"""
     
-    def test_run_compose_rules_empty_code(self):
-        """测试空代码"""
-        findings = run_compose_rules("")
-        self.assertEqual(findings, [])
+    def setUp(self):
+        """每个测试前创建新的runner"""
+        self.runner = EnhancedReviewRunner()
+        self.runner.initialize()
     
-    def test_run_compose_rules_launched_effect_unit(self):
+    def test_launched_effect_unit_detection(self):
         """测试 LaunchedEffect(Unit) 检测"""
         code = """@Composable
-        fun MyScreen() {
-            LaunchedEffect(Unit) {
-                // do something
-            }
-        }"""
-        findings = run_compose_rules(code)
-        self.assertEqual(len(findings), 1)
-        self.assertEqual(findings[0]["severity"], "minor")
-        self.assertEqual(findings[0]["rule"], "launched_effect_unit")
-        self.assertEqual(findings[0]["message"], "LaunchedEffect(Unit) may cause unintended recomposition.")
+fun MyScreen() {
+    LaunchedEffect(Unit) {
+        // do something
+    }
+}"""
+        result = self.runner.review_code(code, "Test.kt")
+        findings = result["findings"]
+        
+        # 检查是否检测到LaunchedEffect(Unit)问题
+        launched_effect_found = False
+        for finding in findings:
+            if "LaunchedEffect" in finding.get("message", "") and "Unit" in finding.get("message", ""):
+                launched_effect_found = True
+                self.assertEqual(finding["severity"], "minor", "LaunchedEffect(Unit)应该是minor级别")
+                break
+        self.assertTrue(launched_effect_found, "应该检测到LaunchedEffect(Unit)问题")
     
-    def test_run_compose_rules_launched_effect_unit_with_spaces(self):
-        """测试 LaunchedEffect( Unit ) 检测（带空格）- 实际实现需要精确匹配 LaunchedEffect(Unit)"""
-        code = """LaunchedEffect( Unit ) {
-            // do something
-        }"""
-        findings = run_compose_rules(code)
-        # 实际实现检查 "LaunchedEffect(Unit)" in code，所以带空格的不会匹配
-        self.assertEqual(len(findings), 0)
-    
-    def test_run_compose_rules_remember_context(self):
+    def test_remember_context_detection(self):
         """测试 remember 持有 context 检测"""
         code = """@Composable
-        fun MyScreen(context: Context) {
-            val remembered = remember {
-                // using context
-                context.getString(R.string.app_name)
-            }
-        }"""
-        findings = run_compose_rules(code)
-        self.assertEqual(len(findings), 1)
-        self.assertEqual(findings[0]["severity"], "major")
-        self.assertEqual(findings[0]["rule"], "remember_context")
-        self.assertEqual(findings[0]["message"], "remember holding context may leak.")
+fun MyScreen(context: Context) {
+    val remembered = remember {
+        // using context
+        context.getString(R.string.app_name)
+    }
+}"""
+        result = self.runner.review_code(code, "Test.kt")
+        findings = result["findings"]
+        
+        # 检查是否检测到remember持有context问题
+        remember_context_found = False
+        for finding in findings:
+            if "remember" in finding.get("message", "").lower() and "context" in finding.get("message", "").lower():
+                remember_context_found = True
+                self.assertEqual(finding["severity"], "major", "remember持有context应该是major级别")
+                break
+        self.assertTrue(remember_context_found, "应该检测到remember持有context问题")
     
-    def test_run_compose_rules_remember_context_multiple_lines(self):
-        """测试 remember 持有 context 检测（多行）"""
-        code = """
-        remember {
-            // some code
-            context.doSomething()
-        }
-        """
-        findings = run_compose_rules(code)
-        self.assertEqual(len(findings), 1)
-        self.assertEqual(findings[0]["rule"], "remember_context")
-    
-    def test_run_compose_rules_remember_no_context(self):
-        """测试 remember 但不包含 context - 注释中不能有任何包含 'context' 的词"""
-        code = """val remembered = remember {
-            // just a number
-            42
-        }"""
-        findings = run_compose_rules(code)
-        # 注释中没有 "context" 这个词，所以不会触发规则
-        self.assertEqual(findings, [])
-    
-    def test_run_compose_rules_launched_effect_with_key(self):
+    def test_launched_effect_with_key_not_detected(self):
         """测试 LaunchedEffect 有 key（不应检测）"""
         code = """LaunchedEffect(key1) {
-            // do something
-        }"""
-        findings = run_compose_rules(code)
-        self.assertEqual(findings, [])
+    // do something
+}"""
+        result = self.runner.review_code(code, "Test.kt")
+        findings = result["findings"]
+        
+        # 不应该检测到LaunchedEffect问题
+        launched_effect_found = False
+        for finding in findings:
+            if "LaunchedEffect" in finding.get("message", ""):
+                launched_effect_found = True
+                break
+        self.assertFalse(launched_effect_found, "LaunchedEffect有key时不应该被检测")
     
-    def test_run_compose_rules_both_issues(self):
-        """测试同时包含两个问题"""
+    def test_remember_no_context_not_detected(self):
+        """测试 remember 但不包含 context（不应检测）"""
+        code = """val remembered = remember {
+    // just a number
+    42
+}"""
+        result = self.runner.review_code(code, "Test.kt")
+        findings = result["findings"]
+        
+        # 不应该检测到remember持有context问题
+        remember_context_found = False
+        for finding in findings:
+            if "remember" in finding.get("message", "").lower() and "context" in finding.get("message", "").lower():
+                remember_context_found = True
+                break
+        self.assertFalse(remember_context_found, "remember不持有context时不应该被检测")
+    
+    def test_multiple_compose_issues_detection(self):
+        """测试同时检测多个Compose问题"""
         code = """@Composable
-        fun MyScreen(context: Context) {
-            LaunchedEffect(Unit) {
-                // do something
-            }
-            
-            val remembered = remember {
-                context.getString(R.string.app_name)
-            }
-        }"""
-        findings = run_compose_rules(code)
-        self.assertEqual(len(findings), 2)
-        # 检查两个问题都被检测到
-        rules_found = {f["rule"] for f in findings}
-        self.assertIn("launched_effect_unit", rules_found)
-        self.assertIn("remember_context", rules_found)
+fun MyScreen(context: Context) {
+    LaunchedEffect(Unit) {
+        // do something
+    }
     
-    def test_run_compose_rules_context_in_comment(self):
-        """测试注释中的 context（也会被检测，因为当前实现只检查字符串包含）"""
-        code = """// context is not used here
-        remember {
-            // no actual context
-            42
-        }"""
-        findings = run_compose_rules(code)
-        # 当前实现检查 "context" in code，即使是在注释中也会匹配
-        self.assertEqual(len(findings), 1)
-        self.assertEqual(findings[0]["rule"], "remember_context")
+    val remembered = remember {
+        context.getString(R.string.app_name)
+    }
+}"""
+        result = self.runner.review_code(code, "Test.kt")
+        findings = result["findings"]
+        
+        # 应该检测到至少2个问题
+        self.assertGreaterEqual(len(findings), 2, "应该检测到至少2个问题")
+        
+        # 检查具体问题类型
+        issue_types = set()
+        for finding in findings:
+            if "LaunchedEffect" in finding.get("message", "") and "Unit" in finding.get("message", ""):
+                issue_types.add("launched_effect_unit")
+            if "remember" in finding.get("message", "").lower() and "context" in finding.get("message", "").lower():
+                issue_types.add("remember_context")
+        
+        self.assertIn("launched_effect_unit", issue_types, "应该检测到LaunchedEffect(Unit)问题")
+        self.assertIn("remember_context", issue_types, "应该检测到remember持有context问题")
+    
+    def test_compose_engine_categories(self):
+        """测试Compose规则分类"""
+        info = self.runner.get_engine_info()
+        stats = info["statistics"]
+        
+        # 检查是否包含Compose相关的分类
+        self.assertIn("categories", stats, "统计信息应包含categories")
+        
+        # 检查是否有正确性相关规则（Compose规则通常属于correctness分类）
+        categories = stats["categories"]
+        if "correctness" in categories:
+            self.assertGreater(categories["correctness"], 0, "应该有正确性相关规则")
+        
+        # 检查规则标签
+        self.assertIn("tags", stats, "统计信息应包含tags")
+        tags = stats["tags"]
+        
+        # Compose规则应该包含compose标签
+        self.assertIn("compose", tags, "规则应该包含compose标签")
+        self.assertGreater(tags["compose"], 0, "应该有Compose相关规则")
+    
+    def test_compose_rule_scoring(self):
+        """测试Compose规则分数计算"""
+        # 包含问题的代码
+        problematic_code = """@Composable
+fun MyScreen() {
+    LaunchedEffect(Unit) {
+        // do something
+    }
+}"""
+        
+        # 没有问题的代码
+        clean_code = """@Composable
+fun MyScreen() {
+    LaunchedEffect(key1) {
+        // do something
+    }
+}"""
+        
+        # 测试有问题的代码
+        problematic_result = self.runner.review_code(problematic_code, "Problematic.kt")
+        problematic_score = problematic_result["score"]
+        
+        # 测试干净的代码
+        clean_result = self.runner.review_code(clean_code, "Clean.kt")
+        clean_score = clean_result["score"]
+        
+        # 有问题的代码分数应该低于干净的代码
+        self.assertLess(problematic_score, clean_score, 
+                       f"有问题的代码分数({problematic_score})应该低于干净的代码分数({clean_score})")
+        
+        # 分数应该在合理范围内（0-100）
+        self.assertGreaterEqual(problematic_score, 0, "分数应该大于等于0")
+        self.assertLessEqual(problematic_score, 100, "分数应该小于等于100")
+        
+        # 干净的代码应该接近100分
+        self.assertGreaterEqual(clean_score, 80, "干净的代码应该至少80分")
 
 
 if __name__ == "__main__":

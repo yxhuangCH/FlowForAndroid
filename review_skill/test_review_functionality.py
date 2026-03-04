@@ -100,31 +100,50 @@ def test_rule_execution():
         print(f"测试代码长度: {len(code)} 字符")
         print(f"测试文件: {temp_file}")
         
-        # 测试基础规则
-        from rules.base_rules import run_base_rules
-        base_findings = run_base_rules(code)
-        
-        print(f"\n基础规则发现的问题数: {len(base_findings)}")
-        for i, finding in enumerate(base_findings, 1):
-            print(f"  问题 {i}: [{finding['severity']}] {finding['rule']} - {finding['message']}")
-        
-        # 测试其他规则
-        from rules.coroutine_rules import run_coroutine_rules
-        coroutine_findings = run_coroutine_rules(code)
-        
-        print(f"\n协程规则发现的问题数: {len(coroutine_findings)}")
-        for i, finding in enumerate(coroutine_findings, 1):
-            print(f"  问题 {i}: [{finding['severity']}] {finding['rule']} - {finding['message']}")
-        
-        # 测试评分
-        from scorer import calculate_score
-        all_findings = base_findings + coroutine_findings
-        score = calculate_score(all_findings)
-        
-        print(f"\n总分数: {score}/100")
-        print(f"总问题数: {len(all_findings)}")
-        
-        return len(all_findings) > 0
+        # 测试新规则引擎
+        try:
+            from rule_engine.integration.review_runner import EnhancedReviewRunner
+            runner = EnhancedReviewRunner()
+            runner.initialize()
+            
+            result = runner.review_code(code, "Test.kt")
+            findings = result["findings"]
+            score = result["score"]
+            
+            print(f"\n统一规则引擎发现的问题数: {len(findings)}")
+            for i, finding in enumerate(findings, 1):
+                print(f"  问题 {i}: [{finding['severity']}] {finding['rule']} - {finding['message']}")
+            
+            print(f"\n总分数: {score}/100")
+            print(f"总问题数: {len(findings)}")
+            
+            # 检查引擎信息
+            info = runner.get_engine_info()
+            print(f"规则引擎统计: {info['rule_count']}个规则")
+            
+            return len(findings) > 0
+            
+        except ImportError as e:
+            print(f"❌ 导入规则引擎失败: {e}")
+            print("  尝试使用回退机制...")
+            # 回退到旧的规则系统（如果可用）
+            try:
+                from rules.base_rules import run_base_rules
+                from rules.coroutine_rules import run_coroutine_rules
+                from scorer import calculate_score
+                
+                base_findings = run_base_rules(code)
+                coroutine_findings = run_coroutine_rules(code)
+                all_findings = base_findings + coroutine_findings
+                score = calculate_score(all_findings)
+                
+                print(f"\n回退模式: 发现的问题数: {len(all_findings)}")
+                print(f"总分数: {score}/100")
+                
+                return len(all_findings) > 0
+            except ImportError as e2:
+                print(f"❌ 回退也失败: {e2}")
+                return False
         
     finally:
         # 清理临时文件

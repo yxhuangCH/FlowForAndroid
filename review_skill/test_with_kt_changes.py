@@ -103,32 +103,61 @@ index 0000000..abcdef1
                 matches = str(relative_path).startswith(scan_dir)
                 print(f"    - {scan_dir}: {'✅ 是' if matches else '❌ 否'}")
         
-        # 测试规则执行（不依赖 git diff）
+        # 测试规则执行（使用统一规则引擎）
         print(f"\n=== 直接测试规则执行 ===")
-        from rules.base_rules import run_base_rules
-        from rules.coroutine_rules import run_coroutine_rules
-        from rules.compose_rules import run_compose_rules
         
-        base_findings = run_base_rules(content)
-        coroutine_findings = run_coroutine_rules(content)
-        compose_findings = run_compose_rules(content)
-        
-        all_findings = base_findings + coroutine_findings + compose_findings
-        
-        print(f"发现的总问题数: {len(all_findings)}")
-        print(f"基础规则: {len(base_findings)} 个")
-        print(f"协程规则: {len(coroutine_findings)} 个")
-        print(f"Compose规则: {len(compose_findings)} 个")
-        
-        if all_findings:
-            print(f"\n详细问题:")
-            for i, finding in enumerate(all_findings, 1):
-                print(f"  {i}. [{finding['severity']}] {finding['rule']}: {finding['message']}")
-        
-        # 测试评分
-        from scorer import calculate_score
-        score = calculate_score(all_findings)
-        print(f"\n代码质量分数: {score}/100")
+        try:
+            from rule_engine.integration.review_runner import EnhancedReviewRunner
+            runner = EnhancedReviewRunner()
+            runner.initialize()
+            
+            result = runner.review_code(content, "Test.kt")
+            findings = result["findings"]
+            score = result["score"]
+            
+            print(f"发现的总问题数: {len(findings)}")
+            print(f"规则引擎信息: {runner.get_engine_info()['rule_count']}个规则")
+            
+            if findings:
+                print(f"\n详细问题:")
+                for i, finding in enumerate(findings, 1):
+                    print(f"  {i}. [{finding['severity']}] {finding['rule']}: {finding['message']}")
+            
+            print(f"\n代码质量分数: {score}/100")
+            
+        except ImportError as e:
+            print(f"⚠️ 统一规则引擎导入失败: {e}")
+            print("尝试使用回退机制...")
+            try:
+                from rules.base_rules import run_base_rules
+                from rules.coroutine_rules import run_coroutine_rules
+                from rules.compose_rules import run_compose_rules
+                from scorer import calculate_score
+                
+                base_findings = run_base_rules(content)
+                coroutine_findings = run_coroutine_rules(content)
+                compose_findings = run_compose_rules(content)
+                
+                all_findings = base_findings + coroutine_findings + compose_findings
+                
+                print(f"回退模式发现的总问题数: {len(all_findings)}")
+                print(f"基础规则: {len(base_findings)} 个")
+                print(f"协程规则: {len(coroutine_findings)} 个")
+                print(f"Compose规则: {len(compose_findings)} 个")
+                
+                if all_findings:
+                    print(f"\n详细问题:")
+                    for i, finding in enumerate(all_findings, 1):
+                        print(f"  {i}. [{finding['severity']}] {finding['rule']}: {finding['message']}")
+                
+                score = calculate_score(all_findings)
+                print(f"\n代码质量分数: {score}/100")
+                
+            except ImportError as e2:
+                print(f"❌ 回退也失败: {e2}")
+                print("没有可用的规则引擎")
+                findings = []
+                score = 100
         
         return len(all_findings) > 0
         
