@@ -92,8 +92,24 @@ class EnhancedReviewRunner:
         self.registry.register(viewmodel_context_rule)
         self.registry.register(main_thread_io_rule)
         
+        # 注册迁移的协程规则
+        try:
+            from ..rules.coroutine_rules import coroutine_main_thread_io_rule, unspecified_scope_rule
+            self.registry.register(coroutine_main_thread_io_rule)
+            self.registry.register(unspecified_scope_rule)
+        except ImportError as e:
+            logger.warning(f"协程规则导入失败: {e}")
+        
+        # 注册迁移的Compose规则
+        try:
+            from ..rules.compose_rules import launched_effect_unit_rule, remember_context_rule
+            self.registry.register(launched_effect_unit_rule)
+            self.registry.register(remember_context_rule)
+        except ImportError as e:
+            logger.warning(f"Compose规则导入失败: {e}")
+        
         # 注册其他新规则（未来添加）
-        # from ..rules import coroutine_rules, compose_rules, etc.
+        # from ..rules import flow_rules, hilt_rules, etc.
     
     def _register_legacy_rules(self):
         """注册旧规则适配器"""
