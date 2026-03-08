@@ -15,7 +15,6 @@ import logging
 # 添加路径以便导入模块
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from rule_engine.adapters.legacy_adapter import create_legacy_adapter
 from rule_engine.interfaces import RuleSeverity, RuleCategory
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -213,60 +212,16 @@ def generate_suggested_fix(rule_id: str) -> str:
 
 def create_legacy_adapters(rules_info: Dict[str, Dict[str, Any]]) -> List[Any]:
     """
-    为旧规则创建适配器
-    
+    为旧规则创建适配器（已禁用，legacy_adapter 已移除）
+
     Args:
         rules_info: 规则信息
         
     Returns:
-        适配器列表
+        空列表
     """
-    adapters = []
-    
-    for module_name, module_info in rules_info.items():
-        module = module_info["module"]
-        
-        for func_name, func in module_info["functions"]:
-            # 提取规则ID
-            rule_id = func_name.replace("run_", "").replace("_rules", "")
-            
-            # 查找对应的规则元数据
-            rule_meta = next(
-                (r for r in module_info["rules"] if r["rule_id"] in func_name or func_name.endswith(r["rule_id"])),
-                None
-            )
-            
-            if rule_meta:
-                metadata = rule_meta["metadata"]
-                severity_str = rule_meta["severity"]
-            else:
-                # 使用默认元数据
-                metadata = infer_rule_metadata(rule_id, "minor", f"旧规则: {rule_id}", module_name)
-                severity_str = "minor"
-            
-            # 转换严重级别
-            try:
-                severity = RuleSeverity(severity_str)
-            except ValueError:
-                severity = RuleSeverity.MINOR
-            
-            # 创建适配器
-            adapter = create_legacy_adapter(
-                rule_id=rule_id,
-                legacy_function=func,
-                name=metadata["name"],
-                description=metadata["description"],
-                severity=severity,
-                category=metadata["category"],
-                tags=metadata["tags"],
-                suggested_fix=metadata["suggested_fix"],
-                weight=1.0
-            )
-            
-            adapters.append(adapter)
-            logger.info(f"创建适配器: {rule_id} ({severity.value})")
-    
-    return adapters
+    logger.warning("legacy_adapter 已移除，适配器功能已禁用")
+    return []
 
 
 def generate_migration_report(rules_info: Dict[str, Dict[str, Any]]) -> str:
