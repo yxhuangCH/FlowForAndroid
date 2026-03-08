@@ -213,7 +213,7 @@ def generate_suggested_fix(rule_id: str) -> str:
 def create_legacy_adapters(rules_info: Dict[str, Dict[str, Any]]) -> List[Any]:
     """
     为旧规则创建适配器（已禁用，legacy_adapter 已移除）
-    
+
     Args:
         rules_info: 规则信息
         

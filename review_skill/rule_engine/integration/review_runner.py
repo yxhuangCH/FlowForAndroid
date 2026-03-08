@@ -83,7 +83,7 @@ class EnhancedReviewRunner:
             self.registry.register(unspecified_scope_rule)
         except ImportError as e:
             logger.warning(f"协程规则导入失败: {e}")
-        
+
         # 注册迁移的Compose规则
         try:
             from ..rules.compose_rules import launched_effect_unit_rule, remember_context_rule
@@ -91,7 +91,7 @@ class EnhancedReviewRunner:
             self.registry.register(remember_context_rule)
         except ImportError as e:
             logger.warning(f"Compose规则导入失败: {e}")
-        
+
         # 注册迁移的Flow规则
         try:
             from ..rules.flow_rules import (
@@ -108,7 +108,7 @@ class EnhancedReviewRunner:
             self.registry.register(mutable_stateflow_exposed_rule)
         except ImportError as e:
             logger.warning(f"Flow规则导入失败: {e}")
-        
+
         # 注册迁移的Flow生命周期规则
         try:
             from ..rules.flow_lifecycle_rules import (
@@ -123,7 +123,7 @@ class EnhancedReviewRunner:
             self.registry.register(statein_without_viewmodelscope_rule)
         except ImportError as e:
             logger.warning(f"Flow生命周期规则导入失败: {e}")
-        
+
         # 注册迁移的Flow结构规则
         try:
             from ..rules.flow_structure_rules import (
@@ -138,14 +138,14 @@ class EnhancedReviewRunner:
             self.registry.register(channel_flow_no_awaitclose_rule)
         except ImportError as e:
             logger.warning(f"Flow结构规则导入失败: {e}")
-        
+
         # 注册迁移的Hilt规则
         try:
             from ..rules.hilt_rules import singleton_activity_rule
             self.registry.register(singleton_activity_rule)
         except ImportError as e:
             logger.warning(f"Hilt规则导入失败: {e}")
-        
+
         # 注册迁移的Dagger2规则
         try:
             from ..rules.dagger2_rules import (
