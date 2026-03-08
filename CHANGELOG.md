@@ -4,6 +4,12 @@
 ## Unreleased
 ### Added
 ### Changed
+### Removed
+### Fixed
+
+## v1.1.1(2026.03.08)
+### Added
+### Changed
 - refactor old rule
 ### Removed
 ### Fixed
