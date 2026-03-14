@@ -3,6 +3,7 @@
 
 ## Unreleased
 ### Added
+- Add English version
 ### Changed
 - refactor old rule
 ### Removed
