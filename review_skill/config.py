@@ -26,6 +26,8 @@ class ReviewConfig:
         'generate_html_report': True,
         # 最小分数阈值（低于此分数会阻塞PR）
         'min_score_threshold': 70,
+        # 语言设置 (zh_CN/en_US)
+        'language': 'zh_CN',
     }
     
     def __init__(self, config_file: Optional[str] = None):
@@ -85,9 +87,15 @@ class ReviewConfig:
                     self.config['min_score_threshold'] = int(min_score)
                 except ValueError:
                     pass
+            
+            # 语言设置
+            language = os.getenv('REVIEW_LANGUAGE')
+            if language:
+                self.config['language'] = language
                     
         except Exception as e:
-            print(f"⚠ 从环境变量加载配置失败: {e}")
+            from i18n import _
+            print(_("⚠ Failed to load configuration from environment: {error}").format(error=e))
     
     def get_file_extensions(self) -> List[str]:
         """获取要检测的文件扩展名列表"""
@@ -206,6 +214,10 @@ class ReviewConfig:
     def get_min_score_threshold(self) -> int:
         """获取最小分数阈值"""
         return self.config['min_score_threshold']
+    
+    def get_language(self) -> str:
+        """获取语言设置"""
+        return self.config.get('language', 'zh_CN')
     
     def get(self, key, default=None):
         """字典风格的get方法，用于兼容旧代码"""

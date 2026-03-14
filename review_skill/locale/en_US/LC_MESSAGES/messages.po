@@ -1,0 +1,205 @@
+# English translations for review-skill.
+# Copyright (C) 2024
+msgid ""
+msgstr ""
+"Project-Id-Version: review-skill 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-01 00:00+0000\n"
+"PO-Revision-Date: 2024-01-01 00:00+0000\n"
+"Last-Translator: \n"
+"Language: en_US\n"
+"Language-Team: English\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: review.py
+msgid "⚠ llm_layer import failed, skipping LLM semantic analysis"
+msgstr "⚠ llm_layer import failed, skipping LLM semantic analysis"
+
+msgid "⚠ LLM layer initialization failed: {error}"
+msgstr "⚠ LLM layer initialization failed: {error}"
+
+msgid "✓ Unified rule engine available"
+msgstr "✓ Unified rule engine available"
+
+msgid "⚠ Rule engine import failed: {error}"
+msgstr "⚠ Rule engine import failed: {error}"
+
+msgid "⚠ Rule engine initialization failed: {error}"
+msgstr "⚠ Rule engine initialization failed: {error}"
+
+msgid "⚠ Report generator import failed: {error}"
+msgstr "⚠ Report generator import failed: {error}"
+
+msgid "⚠ Report generator initialization failed: {error}"
+msgstr "⚠ Report generator initialization failed: {error}"
+
+msgid "⚠ New rule engine execution failed: {error}"
+msgstr "⚠ New rule engine execution failed: {error}"
+
+msgid "⚠ Fallback engine execution failed: {error}"
+msgstr "⚠ Fallback engine execution failed: {error}"
+
+msgid "No changes to review. Git diff is empty."
+msgstr "No changes to review. Git diff is empty."
+
+msgid "No files to scan."
+msgstr "No files to scan."
+
+msgid "Configured file extensions: {extensions}"
+msgstr "Configured file extensions: {extensions}"
+
+msgid "Configured scan directories: {directories}"
+msgstr "Configured scan directories: {directories}"
+
+msgid "Using unified rule engine for review..."
+msgstr "Using unified rule engine for review..."
+
+msgid "⚠ Unified rule engine execution failed: {error}"
+msgstr "⚠ Unified rule engine execution failed: {error}"
+
+msgid "Fallback to old rule engine..."
+msgstr "Fallback to old rule engine..."
+
+msgid "Unified rule engine not available, using old rule engine..."
+msgstr "Unified rule engine not available, using old rule engine..."
+
+msgid "⚠ HTML report generation failed: {error}"
+msgstr "⚠ HTML report generation failed: {error}"
+
+msgid "⚠ Report generator not available, skip HTML report generation"
+msgstr "⚠ Report generator not available, skip HTML report generation"
+
+msgid "⚠ No code changes, skip HTML report generation"
+msgstr "⚠ No code changes, skip HTML report generation"
+
+msgid "📊 HTML report generated: {path}"
+msgstr "📊 HTML report generated: {path}"
+
+msgid "📂 Open report: open {path}"
+msgstr "📂 Open report: open {path}"
+
+msgid "📁 Report directory: {directory}"
+msgstr "📁 Report directory: {directory}"
+
+msgid "📝 Detailed JSON report: {path}"
+msgstr "📝 Detailed JSON report: {path}"
+
+#: config.py
+msgid "Configuration file not found: {path}"
+msgstr "Configuration file not found: {path}"
+
+msgid "Configuration loaded successfully"
+msgstr "Configuration loaded successfully"
+
+msgid "⚠ Failed to load configuration: {error}"
+msgstr "⚠ Failed to load configuration: {error}"
+
+msgid "File extension not supported: {extension}"
+msgstr "File extension not supported: {extension}"
+
+msgid "File path not in scan directory: {path}"
+msgstr "File path not in scan directory: {path}"
+
+msgid "File matches exclude pattern: {pattern}"
+msgstr "File matches exclude pattern: {pattern}"
+
+#: rule_engine/engine.py
+msgid "Rule execution timed out: {rule_id}"
+msgstr "Rule execution timed out: {rule_id}"
+
+msgid "⚠ Rule execution failed: {rule_id} - {error}"
+msgstr "⚠ Rule execution failed: {rule_id} - {error}"
+
+msgid "Rule execution completed: {count} rules, {findings} findings"
+msgstr "Rule execution completed: {count} rules, {findings} findings"
+
+msgid "Parallel execution: {workers} workers"
+msgstr "Parallel execution: {workers} workers"
+
+msgid "Cache hit: {key}"
+msgstr "Cache hit: {key}"
+
+msgid "Cache miss: {key}"
+msgstr "Cache miss: {key}"
+
+#: rule_engine/registry.py
+msgid "Rule registered: {rule_id}"
+msgstr "Rule registered: {rule_id}"
+
+msgid "⚠ Failed to register rule: {rule_id} - {error}"
+msgstr "⚠ Failed to register rule: {rule_id} - {error}"
+
+msgid "Rule unregistered: {rule_id}"
+msgstr "Rule unregistered: {rule_id}"
+
+msgid "Rule not found: {rule_id}"
+msgstr "Rule not found: {rule_id}"
+
+msgid "All rules cleared"
+msgstr "All rules cleared"
+
+msgid "Rule enabled: {rule_id}"
+msgstr "Rule enabled: {rule_id}"
+
+msgid "Rule disabled: {rule_id}"
+msgstr "Rule disabled: {rule_id}"
+
+#: rule_engine/integration/review_runner.py
+msgid "Initializing review runner..."
+msgstr "Initializing review runner..."
+
+msgid "Review runner initialized: {rule_count} rules"
+msgstr "Review runner initialized: {rule_count} rules"
+
+msgid "Reviewing file: {file_path}"
+msgstr "Reviewing file: {file_path}"
+
+msgid "Review completed: {file_count} files, {finding_count} findings"
+msgstr "Review completed: {file_count} files, {finding_count} findings"
+
+msgid "Score calculated: {score}/100"
+msgstr "Score calculated: {score}/100"
+
+#: report_generator.py
+msgid "Parsing git diff..."
+msgstr "Parsing git diff..."
+
+msgid "Git diff parsed: {file_count} files"
+msgstr "Git diff parsed: {file_count} files"
+
+msgid "Generating HTML report..."
+msgstr "Generating HTML report..."
+
+msgid "HTML report generated: {path}"
+msgstr "HTML report generated: {path}"
+
+msgid "⚠ Failed to generate HTML report: {error}"
+msgstr "⚠ Failed to generate HTML report: {error}"
+
+msgid "Copying refer files..."
+msgstr "Copying refer files..."
+
+msgid "✓ Refer file copied: {filename}"
+msgstr "✓ Refer file copied: {filename}"
+
+msgid "⚠ Failed to copy refer file {filename}: {error}"
+msgstr "⚠ Failed to copy refer file {filename}: {error}"
+
+msgid "📦 Total {count} refer files copied to report directory"
+msgstr "📦 Total {count} refer files copied to report directory"
+
+#: llm_layer.py
+msgid "LLM semantic analysis..."
+msgstr "LLM semantic analysis..."
+
+msgid "LLM analysis completed"
+msgstr "LLM analysis completed"
+
+msgid "⚠ LLM analysis failed: {error}"
+msgstr "⚠ LLM analysis failed: {error}"
+
+msgid "LLM not available, using rule engine only"
+msgstr "LLM not available, using rule engine only"

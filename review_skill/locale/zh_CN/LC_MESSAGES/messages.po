@@ -1,0 +1,205 @@
+# Chinese translations for review-skill.
+# Copyright (C) 2024
+msgid ""
+msgstr ""
+"Project-Id-Version: review-skill 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-01 00:00+0000\n"
+"PO-Revision-Date: 2024-01-01 00:00+0000\n"
+"Last-Translator: \n"
+"Language: zh_CN\n"
+"Language-Team: Chinese\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: review.py
+msgid "⚠ llm_layer import failed, skipping LLM semantic analysis"
+msgstr "⚠ llm_layer 导入失败，跳过 LLM 语义分析"
+
+msgid "⚠ LLM layer initialization failed: {error}"
+msgstr "⚠ LLM 层初始化失败: {error}"
+
+msgid "✓ Unified rule engine available"
+msgstr "✓ 统一规则引擎可用"
+
+msgid "⚠ Rule engine import failed: {error}"
+msgstr "⚠ 规则引擎导入失败: {error}"
+
+msgid "⚠ Rule engine initialization failed: {error}"
+msgstr "⚠ 规则引擎初始化失败: {error}"
+
+msgid "⚠ Report generator import failed: {error}"
+msgstr "⚠ 报告生成器导入失败: {error}"
+
+msgid "⚠ Report generator initialization failed: {error}"
+msgstr "⚠ 报告生成器初始化失败: {error}"
+
+msgid "⚠ New rule engine execution failed: {error}"
+msgstr "⚠ 新规则引擎执行失败: {error}"
+
+msgid "⚠ Fallback engine execution failed: {error}"
+msgstr "⚠ 回退引擎执行失败: {error}"
+
+msgid "No changes to review. Git diff is empty."
+msgstr "没有需要审查的变更。Git diff 为空。"
+
+msgid "No files to scan."
+msgstr "没有需要扫描的文件。"
+
+msgid "Configured file extensions: {extensions}"
+msgstr "配置的文件扩展名: {extensions}"
+
+msgid "Configured scan directories: {directories}"
+msgstr "配置的扫描目录: {directories}"
+
+msgid "Using unified rule engine for review..."
+msgstr "使用统一规则引擎进行审查..."
+
+msgid "⚠ Unified rule engine execution failed: {error}"
+msgstr "⚠ 统一规则引擎执行失败: {error}"
+
+msgid "Fallback to old rule engine..."
+msgstr "回退到旧规则引擎..."
+
+msgid "Unified rule engine not available, using old rule engine..."
+msgstr "统一规则引擎不可用，使用旧规则引擎..."
+
+msgid "⚠ HTML report generation failed: {error}"
+msgstr "⚠ HTML 报告生成失败: {error}"
+
+msgid "⚠ Report generator not available, skip HTML report generation"
+msgstr "⚠ 报告生成器不可用，跳过 HTML 报告生成"
+
+msgid "⚠ No code changes, skip HTML report generation"
+msgstr "⚠ 没有代码变更，跳过 HTML 报告生成"
+
+msgid "📊 HTML report generated: {path}"
+msgstr "📊 HTML 报告已生成: {path}"
+
+msgid "📂 Open report: open {path}"
+msgstr "📂 打开报告: open {path}"
+
+msgid "📁 Report directory: {directory}"
+msgstr "📁 报告目录: {directory}"
+
+msgid "📝 Detailed JSON report: {path}"
+msgstr "📝 详细 JSON 报告: {path}"
+
+#: config.py
+msgid "Configuration file not found: {path}"
+msgstr "配置文件未找到: {path}"
+
+msgid "Configuration loaded successfully"
+msgstr "配置加载成功"
+
+msgid "⚠ Failed to load configuration: {error}"
+msgstr "⚠ 加载配置失败: {error}"
+
+msgid "File extension not supported: {extension}"
+msgstr "不支持的文件扩展名: {extension}"
+
+msgid "File path not in scan directory: {path}"
+msgstr "文件路径不在扫描目录中: {path}"
+
+msgid "File matches exclude pattern: {pattern}"
+msgstr "文件匹配排除模式: {pattern}"
+
+#: rule_engine/engine.py
+msgid "Rule execution timed out: {rule_id}"
+msgstr "规则执行超时: {rule_id}"
+
+msgid "⚠ Rule execution failed: {rule_id} - {error}"
+msgstr "⚠ 规则执行失败: {rule_id} - {error}"
+
+msgid "Rule execution completed: {count} rules, {findings} findings"
+msgstr "规则执行完成: {count} 条规则, {findings} 个问题"
+
+msgid "Parallel execution: {workers} workers"
+msgstr "并行执行: {workers} 个工作线程"
+
+msgid "Cache hit: {key}"
+msgstr "缓存命中: {key}"
+
+msgid "Cache miss: {key}"
+msgstr "缓存未命中: {key}"
+
+#: rule_engine/registry.py
+msgid "Rule registered: {rule_id}"
+msgstr "规则已注册: {rule_id}"
+
+msgid "⚠ Failed to register rule: {rule_id} - {error}"
+msgstr "⚠ 规则注册失败: {rule_id} - {error}"
+
+msgid "Rule unregistered: {rule_id}"
+msgstr "规则已注销: {rule_id}"
+
+msgid "Rule not found: {rule_id}"
+msgstr "规则未找到: {rule_id}"
+
+msgid "All rules cleared"
+msgstr "所有规则已清除"
+
+msgid "Rule enabled: {rule_id}"
+msgstr "规则已启用: {rule_id}"
+
+msgid "Rule disabled: {rule_id}"
+msgstr "规则已禁用: {rule_id}"
+
+#: rule_engine/integration/review_runner.py
+msgid "Initializing review runner..."
+msgstr "正在初始化审查运行器..."
+
+msgid "Review runner initialized: {rule_count} rules"
+msgstr "审查运行器已初始化: {rule_count} 条规则"
+
+msgid "Reviewing file: {file_path}"
+msgstr "正在审查文件: {file_path}"
+
+msgid "Review completed: {file_count} files, {finding_count} findings"
+msgstr "审查完成: {file_count} 个文件, {finding_count} 个问题"
+
+msgid "Score calculated: {score}/100"
+msgstr "分数计算完成: {score}/100"
+
+#: report_generator.py
+msgid "Parsing git diff..."
+msgstr "正在解析 git diff..."
+
+msgid "Git diff parsed: {file_count} files"
+msgstr "Git diff 解析完成: {file_count} 个文件"
+
+msgid "Generating HTML report..."
+msgstr "正在生成 HTML 报告..."
+
+msgid "HTML report generated: {path}"
+msgstr "HTML 报告已生成: {path}"
+
+msgid "⚠ Failed to generate HTML report: {error}"
+msgstr "⚠ HTML 报告生成失败: {error}"
+
+msgid "Copying refer files..."
+msgstr "正在复制 refer 文件..."
+
+msgid "✓ Refer file copied: {filename}"
+msgstr "✓ Refer 文件已复制: {filename}"
+
+msgid "⚠ Failed to copy refer file {filename}: {error}"
+msgstr "⚠ Refer 文件复制失败 {filename}: {error}"
+
+msgid "📦 Total {count} refer files copied to report directory"
+msgstr "📦 总计 {count} 个 refer 文件已复制到报告目录"
+
+#: llm_layer.py
+msgid "LLM semantic analysis..."
+msgstr "LLM 语义分析..."
+
+msgid "LLM analysis completed"
+msgstr "LLM 分析完成"
+
+msgid "⚠ LLM analysis failed: {error}"
+msgstr "⚠ LLM 分析失败: {error}"
+
+msgid "LLM not available, using rule engine only"
+msgstr "LLM 不可用，仅使用规则引擎"

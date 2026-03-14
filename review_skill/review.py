@@ -8,6 +8,9 @@ from typing import Dict, List
 from config import get_config
 import traceback
 
+# 导入国际化模块
+from i18n import init_i18n, _
+
 # 尝试导入 LLM 层，如果可用的话
 LLM_AVAILABLE = False
 try:
@@ -15,10 +18,10 @@ try:
     LLM_AVAILABLE = True
 except ImportError:
     LLM_AVAILABLE = False
-    print("⚠ llm_layer 导入失败，跳过LLM语义分析")
+    print(_("⚠ llm_layer import failed, skipping LLM semantic analysis"))
 except Exception as e:
     LLM_AVAILABLE = False
-    print(f"⚠ LLM层初始化失败: {e}")
+    print(_("⚠ LLM layer initialization failed: {error}").format(error=e))
 
 # 导入统一规则引擎
 RULE_ENGINE_AVAILABLE = False
@@ -26,10 +29,10 @@ try:
     from rule_engine.integration.review_runner import ReviewRunner
     from rule_engine.interfaces import ReviewError, ConfigurationError, IntegrationError
     RULE_ENGINE_AVAILABLE = True
-    print("✓ 统一规则引擎可用")
+    print(_("✓ Unified rule engine available"))
 except ImportError as e:
     RULE_ENGINE_AVAILABLE = False
-    print(f"⚠ 规则引擎导入失败: {e}")
+    print(_("⚠ Rule engine import failed: {error}").format(error=e))
     # 回退到旧的错误处理
     class ReviewError(Exception):
         pass
@@ -39,7 +42,7 @@ except ImportError as e:
         pass
 except Exception as e:
     RULE_ENGINE_AVAILABLE = False
-    print(f"⚠ 规则引擎初始化失败: {e}")
+    print(_("⚠ Rule engine initialization failed: {error}").format(error=e))
 
 # 尝试导入HTML报告生成器
 REPORT_GENERATOR_AVAILABLE = False
@@ -48,10 +51,10 @@ try:
     REPORT_GENERATOR_AVAILABLE = True
 except ImportError as e:
     REPORT_GENERATOR_AVAILABLE = False
-    print(f"⚠ 报告生成器导入失败: {e}")
+    print(_("⚠ Report generator import failed: {error}").format(error=e))
 except Exception as e:
     REPORT_GENERATOR_AVAILABLE = False
-    print(f"⚠ 报告生成器初始化失败: {e}")
+    print(_("⚠ Report generator initialization failed: {error}").format(error=e))
 
 
 # 获取 git diff
@@ -122,7 +125,7 @@ def _review_with_new_engine(diff: str, config) -> Dict:
             "engine_info": runner.get_engine_info()
         }
     except Exception as e:
-        print(f"⚠ 新规则引擎执行失败: {e}")
+        print(_("⚠ New rule engine execution failed: {error}").format(error=e))
         import traceback
         traceback.print_exc()
         # 回退到旧引擎
@@ -174,7 +177,7 @@ def _review_with_old_engine(diff: str, config) -> Dict:
             "engine_info": runner.get_engine_info()
         }
     except Exception as e:
-        print(f"⚠ 回退引擎执行失败: {e}")
+        print(_("⚠ Fallback engine execution failed: {error}").format(error=e))
         import traceback
         traceback.print_exc()
         # 最终回退：返回空结果
@@ -194,29 +197,29 @@ def review():
     raw_diff = get_git_diff()
     
     if not raw_diff.strip():
-        print("No changes to review. Git diff is empty.")
+        print(_("No changes to review. Git diff is empty."))
         return
     
     # 过滤diff，只扫描符合配置的文件
     diff = config.filter_git_diff(raw_diff)
     
     if not diff.strip():
-        print("没有需要扫描的文件变更。")
-        print(f"配置的文件扩展名: {config.get_file_extensions()}")
-        print(f"配置的扫描目录: {config.get_scan_directories()}")
+        print(_("No files to scan."))
+        print(_("Configured file extensions: {extensions}").format(extensions=config.get_file_extensions()))
+        print(_("Configured scan directories: {directories}").format(directories=config.get_scan_directories()))
         return
 
     # 总是使用统一规则引擎（如果可用）
     if RULE_ENGINE_AVAILABLE:
-        print("使用统一规则引擎进行审查...")
+        print(_("Using unified rule engine for review..."))
         try:
             result = _review_with_new_engine(diff, config)
         except Exception as e:
-            print(f"⚠ 统一规则引擎执行失败: {e}")
-            print("回退到旧规则引擎...")
+            print(_("⚠ Unified rule engine execution failed: {error}").format(error=e))
+            print(_("Fallback to old rule engine..."))
             result = _review_with_old_engine(diff, config)
     else:
-        print("统一规则引擎不可用，使用旧规则引擎...")
+        print(_("Unified rule engine not available, using old rule engine..."))
         result = _review_with_old_engine(diff, config)
     
     # 如果 LLM 可用且有代码变更，进行语义审查
@@ -277,9 +280,9 @@ def review():
                 output_path=str(html_report_path)
             )
             
-            print(f"\n📊 HTML报告已生成: {report_path}")
-            print(f"📂 打开报告: open {report_path}")
-            print(f"📁 报告目录: {report_dir}")
+            print(_("\n📊 HTML report generated: {path}").format(path=report_path))
+            print(_("📂 Open report: open {path}").format(path=report_path))
+            print(_("📁 Report directory: {directory}").format(directory=report_dir))
             
             # 同时生成一个更详细的JSON报告
             detailed_result = {
@@ -309,17 +312,17 @@ def review():
             with open(json_report_path, 'w', encoding='utf-8') as f:
                 json.dump(detailed_result, f, indent=2, ensure_ascii=False)
             
-            print(f"📝 详细JSON报告: {json_report_path}")
+            print(_("📝 Detailed JSON report: {path}").format(path=json_report_path))
             
         except Exception as e:
-            print(f"⚠ HTML报告生成失败: {e}")
+            print(_("⚠ HTML report generation failed: {error}").format(error=e))
             import traceback
             traceback.print_exc()
     else:
         if not REPORT_GENERATOR_AVAILABLE:
-            print("⚠ HTML报告生成器不可用，跳过HTML报告生成")
+            print(_("⚠ Report generator not available, skip HTML report generation"))
         else:
-            print("⚠ 没有代码变更，跳过HTML报告生成")
+            print(_("⚠ No code changes, skip HTML report generation"))
 
     if result["block_pr"]:
         exit(1)
