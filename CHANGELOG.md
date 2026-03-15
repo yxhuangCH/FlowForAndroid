@@ -1,7 +1,12 @@
 # Changelog
 
-
 ## Unreleased
+### Added
+### Changed
+### Removed
+### Fixed
+
+## v1.1.2(2026.03.15)
 ### Added
 - Add English version
 - Add Support github copilot
