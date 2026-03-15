@@ -149,6 +149,58 @@ python3 test_config.py
 
 注意：需要设置相应的 API Key 环境变量才能使用 LLM 语义增强功能。
 
+## Git Hook 集成
+
+### 安装 Pre-Push Hook
+
+安装后，每次 `git push` 会自动执行代码审查，不通过则无法推送：
+
+```bash
+cd review_skill
+chmod +x install-git-hook.sh
+./install-git-hook.sh
+```
+
+### 跳过代码审查
+
+有四种方式可以跳过 pre-push 检查：
+
+**方式1: git push-skip-review（推荐）**
+```bash
+# 跳过审查直接 push
+git push-skip-review
+
+# 支持所有 git push 参数
+git push-skip-review origin main
+git push-skip-review --force-with-lease origin feature-branch
+```
+
+**方式2: 环境变量（临时跳过）**
+```bash
+SKIP_REVIEW=1 git push
+```
+
+**方式3: Git 配置（永久禁用）**
+```bash
+# 禁用
+git config hooks.skip-review true
+
+# 重新启用
+git config hooks.skip-review false
+```
+
+**方式4: --no-verify（跳过所有 hooks，不推荐）**
+```bash
+git push --no-verify
+```
+
+### Hook 工作原理
+
+1. 执行 `git push` 时触发 pre-push hook
+2. 自动运行 `python3 review.py` 进行代码审查
+3. 如果审查不通过（exit code ≠ 0），push 被拒绝
+4. 显示跳过提示，用户可选择跳过或修复代码
+
 ## 详细文档
 
 ### 用户手册
