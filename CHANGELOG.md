@@ -5,6 +5,7 @@
 ### Added
 - Add English version
 - Add Support github copilot
+- Add Git hook
 ### Changed
 - refactor old rule
 ### Removed

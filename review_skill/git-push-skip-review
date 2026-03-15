@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# Git Push Skip Review
+# 跳过代码审查直接 push 的便捷命令
+# 用法: git push-skip-review [remote] [branch]
+#
+
+# 颜色定义
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+echo -e "${YELLOW}⚠️  Skipping code review and pushing...${NC}"
+
+# 临时启用 push.skipReview 配置
+git config push.skipReview true
+
+# 执行 push 命令，传递所有参数
+if git push "$@"; then
+    echo -e "${GREEN}✅ Push completed successfully${NC}"
+    EXIT_CODE=0
+else
+    EXIT_CODE=$?
+fi
+
+# push 完成后恢复配置（禁用 skipReview）
+git config push.skipReview false
+
+exit $EXIT_CODE
