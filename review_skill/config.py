@@ -92,10 +92,48 @@ class ReviewConfig:
             language = os.getenv('REVIEW_LANGUAGE')
             if language:
                 self.config['language'] = language
+            
+            # LLM 提供商设置
+            llm_provider = os.getenv('LLM_PROVIDER')
+            if llm_provider:
+                self.config['llm_provider'] = llm_provider
+            
+            # LLM 模型设置
+            llm_model = os.getenv('LLM_MODEL')
+            if llm_model:
+                self.config['llm_model'] = llm_model
                     
         except Exception as e:
             from i18n import _
             print(_("⚠ Failed to load configuration from environment: {error}").format(error=e))
+
+    def get_llm_provider(self) -> str:
+        """获取LLM提供商配置"""
+        return self.config.get('llm_provider', 'auto')
+
+    def get_llm_model(self) -> str:
+        """获取LLM模型配置"""
+        # 从环境变量或配置中获取，根据提供商提供默认值
+        model = self.config.get('llm_model')
+        if model:
+            return model
+        
+        # 根据提供商返回默认模型
+        provider = self.get_llm_provider()
+        if provider == 'github_copilot':
+            return 'gpt-4o-copilot'
+        elif provider == 'deepseek':
+            return 'deepseek-chat'
+        elif provider == 'openai':
+            return 'gpt-4o-mini'
+        return None
+
+    def get_llm_config(self) -> dict:
+        """获取LLM完整配置"""
+        return {
+            'provider': self.get_llm_provider(),
+            'model': self.get_llm_model(),
+        }
     
     def get_file_extensions(self) -> List[str]:
         """获取要检测的文件扩展名列表"""

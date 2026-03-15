@@ -4,6 +4,7 @@
 ## Unreleased
 ### Added
 - Add English version
+- Add Support github copilot
 ### Changed
 - refactor old rule
 ### Removed
