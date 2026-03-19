@@ -49,3 +49,9 @@ fun GreetingPreview() {
         Greeting("Android")
     }
 }
+
+fun testIntent(context: Context) {
+    context.startActivity(
+        Intent(), Bundle()
+    )
+}
