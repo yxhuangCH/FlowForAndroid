@@ -5,7 +5,6 @@ import kotlinx.coroutines.launch
 
 class TestClass {
     fun test() {
-        GlobalScope.launch { println("test") }
-    }
 
+    }
 }
