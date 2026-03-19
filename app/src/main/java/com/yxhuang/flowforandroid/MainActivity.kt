@@ -55,3 +55,9 @@ fun testIntent(context: Context) {
         Intent(), Bundle()
     )
 }
+
+fun testIntent2(context: Context) {
+    context.startActivity(
+        Intent(), Bundle()
+    )
+}
