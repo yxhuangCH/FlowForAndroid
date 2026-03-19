@@ -7,8 +7,4 @@ class TestClass {
     fun test() {
         GlobalScope.launch { println("test") }
     }
-
-    fun test2() {
-        GlobalScope.launch { println("test") }
-    }
 }
