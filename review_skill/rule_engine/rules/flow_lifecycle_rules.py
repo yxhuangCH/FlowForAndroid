@@ -1,5 +1,4 @@
-"""
-Flow生命周期相关规则 - 迁移到新引擎格式
+"""Flow Lifecycle Related Rules - 
 """
 from typing import List
 from ..interfaces import Rule, RuleMetadata, RuleSeverity, RuleCategory, Finding
@@ -9,16 +8,16 @@ from ..adapters.decorators import rule
 
 @rule(
     rule_id="statein_globalscope",
-    name="stateIn使用GlobalScope",
-    description="StateFlow使用GlobalScope可能导致内存泄漏",
+    name="stateInGlobalScope",
+    description="StateFlowGlobalScope",
     severity=RuleSeverity.CRITICAL,
     category=RuleCategory.LIFECYCLE,
     tags=["android", "kotlin", "flow", "stateflow", "globalscope", "memory_leak"],
-    suggested_fix="使用viewModelScope或lifecycleScope替代GlobalScope",
+    suggested_fix="viewModelScopelifecycleScopeGlobalScope",
     weight=1.0
 )
 def statein_globalscope_rule(context: RuleContext) -> List[Finding]:
-    """检测stateIn(GlobalScope)使用"""
+    """stateIn(GlobalScope)"""
     findings = []
     
     lines = context.get_lines()
@@ -26,12 +25,12 @@ def statein_globalscope_rule(context: RuleContext) -> List[Finding]:
         if "statein(globalscope" in line.lower():
             findings.append(Finding(
                 rule_id="statein_globalscope",
-                message="StateFlow使用GlobalScope可能导致内存泄漏",
+                message="StateFlowGlobalScope",
                 severity=RuleSeverity.CRITICAL,
                 file_path=context.file_path,
                 line_number=i,
                 code_snippet=line,
-                suggestion="使用viewModelScope或lifecycleScope替代GlobalScope"
+                suggestion="viewModelScopelifecycleScopeGlobalScope"
             ))
     
     return findings
@@ -39,16 +38,16 @@ def statein_globalscope_rule(context: RuleContext) -> List[Finding]:
 
 @rule(
     rule_id="sharein_globalscope",
-    name="shareIn使用GlobalScope",
-    description="SharedFlow使用GlobalScope可能导致内存泄漏",
+    name="shareInGlobalScope",
+    description="SharedFlowGlobalScope",
     severity=RuleSeverity.CRITICAL,
     category=RuleCategory.LIFECYCLE,
     tags=["android", "kotlin", "flow", "sharedflow", "globalscope", "memory_leak"],
-    suggested_fix="使用viewModelScope或lifecycleScope替代GlobalScope",
+    suggested_fix="viewModelScopelifecycleScopeGlobalScope",
     weight=1.0
 )
 def sharein_globalscope_rule(context: RuleContext) -> List[Finding]:
-    """检测shareIn(GlobalScope)使用"""
+    """shareIn(GlobalScope)"""
     findings = []
     
     lines = context.get_lines()
@@ -56,12 +55,12 @@ def sharein_globalscope_rule(context: RuleContext) -> List[Finding]:
         if "sharein(globalscope" in line.lower():
             findings.append(Finding(
                 rule_id="sharein_globalscope",
-                message="SharedFlow使用GlobalScope可能导致内存泄漏",
+                message="SharedFlowGlobalScope",
                 severity=RuleSeverity.CRITICAL,
                 file_path=context.file_path,
                 line_number=i,
                 code_snippet=line,
-                suggestion="使用viewModelScope或lifecycleScope替代GlobalScope"
+                suggestion="viewModelScopelifecycleScopeGlobalScope"
             ))
     
     return findings
@@ -69,16 +68,16 @@ def sharein_globalscope_rule(context: RuleContext) -> List[Finding]:
 
 @rule(
     rule_id="collect_without_repeat",
-    name="Flow collect未使用repeatOnLifecycle",
-    description="UI层collect Flow未使用repeatOnLifecycle可能导致生命周期问题",
+    name="Flow collectrepeatOnLifecycle",
+    description="UIcollect FlowrepeatOnLifecycle",
     severity=RuleSeverity.MAJOR,
     category=RuleCategory.LIFECYCLE,
     tags=["android", "kotlin", "flow", "collect", "lifecycle", "ui"],
-    suggested_fix="使用repeatOnLifecycle包装collect操作",
+    suggested_fix="repeatOnLifecyclecollect",
     weight=0.9
 )
 def collect_without_repeat_rule(context: RuleContext) -> List[Finding]:
-    """检测collect未使用repeatOnLifecycle"""
+    """collectrepeatOnLifecycle"""
     findings = []
     
     lines = context.get_lines()
@@ -87,15 +86,15 @@ def collect_without_repeat_rule(context: RuleContext) -> List[Finding]:
     
     for i, line in enumerate(lines, 1):
         line_lower = line.lower()
-        # 检测是否在UI层（Activity/Fragment/Compose）
+        # UI（Activity/Fragment/Compose）
         if any(keyword in line_lower for keyword in ["activity", "fragment", "composable", "@composable"]):
             in_ui_layer = True
         
-        # 检测collect操作
+        # collect
         if "collect {" in line_lower:
             has_collect = True
             if in_ui_layer and "repeatonlifecycle" not in line_lower:
-                # 检查前几行是否有repeatOnLifecycle
+                # CheckrepeatOnLifecycle
                 has_repeat_nearby = False
                 start = max(0, i - 3)
                 end = min(len(lines), i + 1)
@@ -107,12 +106,12 @@ def collect_without_repeat_rule(context: RuleContext) -> List[Finding]:
                 if not has_repeat_nearby:
                     findings.append(Finding(
                         rule_id="collect_without_repeat",
-                        message="UI层collect Flow未使用repeatOnLifecycle可能导致生命周期问题",
+                        message="UIcollect FlowrepeatOnLifecycle",
                         severity=RuleSeverity.MAJOR,
                         file_path=context.file_path,
                         line_number=i,
                         code_snippet=line,
-                        suggestion="使用repeatOnLifecycle包装collect操作"
+                        suggestion="repeatOnLifecyclecollect"
                     ))
     
     return findings
@@ -120,16 +119,16 @@ def collect_without_repeat_rule(context: RuleContext) -> List[Finding]:
 
 @rule(
     rule_id="statein_without_viewmodelscope",
-    name="ViewModel中stateIn未使用viewModelScope",
-    description="ViewModel中使用stateIn但未指定viewModelScope",
+    name="ViewModelstateInviewModelScope",
+    description="ViewModelstateInviewModelScope",
     severity=RuleSeverity.MAJOR,
     category=RuleCategory.LIFECYCLE,
     tags=["android", "kotlin", "flow", "viewmodel", "scope"],
-    suggested_fix="在ViewModel中使用stateIn(viewModelScope)",
+    suggested_fix="ViewModelstateIn(viewModelScope)",
     weight=0.8
 )
 def statein_without_viewmodelscope_rule(context: RuleContext) -> List[Finding]:
-    """检测ViewModel中stateIn未使用viewModelScope"""
+    """ViewModelstateInviewModelScope"""
     findings = []
     
     lines = context.get_lines()
@@ -137,21 +136,21 @@ def statein_without_viewmodelscope_rule(context: RuleContext) -> List[Finding]:
     
     for i, line in enumerate(lines, 1):
         line_lower = line.lower()
-        # 检测是否在ViewModel中
+        # ViewModel
         if "viewmodel" in line_lower or ": viewmodel" in line_lower:
             in_viewmodel = True
         
-        # 检测stateIn使用
+        # stateIn
         if in_viewmodel and "statein(" in line_lower:
             if "viewmodelscope" not in line_lower:
                 findings.append(Finding(
                     rule_id="statein_without_viewmodelscope",
-                    message="ViewModel中使用stateIn但未指定viewModelScope",
+                    message="ViewModelstateInviewModelScope",
                     severity=RuleSeverity.MAJOR,
                     file_path=context.file_path,
                     line_number=i,
                     code_snippet=line,
-                    suggestion="在ViewModel中使用stateIn(viewModelScope)"
+                    suggestion="ViewModelstateIn(viewModelScope)"
                 ))
     
     return findings

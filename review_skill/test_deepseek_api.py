@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-DeepSeek API 测试脚本
-用于验证 API Key 是否有效
+DeepSeek API Test Script
+Used to verify if the API Key is valid
 """
 
 import os
@@ -10,52 +10,52 @@ from pathlib import Path
 import json
 
 def load_env():
-    """从 .env 文件加载环境变量"""
+    """Load environment variables from .env file"""
     env_path = Path(__file__).parent / '.env'
     if env_path.exists():
         try:
             from dotenv import load_dotenv
             load_dotenv(env_path)
-            print(f"✓ 已从 {env_path} 加载环境变量")
+            print(f"✓ Environment variables loaded from {env_path}")
         except ImportError:
-            print("⚠ dotenv 未安装，跳过 .env 加载")
+            print("⚠ dotenv not installed, skipping .env loading")
     
     api_key = os.environ.get("DEEPSEEK_API_KEY")
     if not api_key:
-        print("❌ 未找到 DEEPSEEK_API_KEY 环境变量")
+        print("❌ DEEPSEEK_API_KEY environment variable not found")
         return None
     
     return api_key
 
 def test_api_key_direct(api_key):
-    """直接测试 API Key"""
-    print(f"\n=== 直接测试 API Key ===")
+    """Test API Key directly"""
+    print(f"\n=== Direct API Key Test ===")
     print(f"API Key: {api_key[:8]}...{api_key[-4:]}")
-    print(f"长度: {len(api_key)} 字符")
-    print(f"以 'sk-' 开头: {api_key.startswith('sk-')}")
+    print(f"Length: {len(api_key)} characters")
+    print(f"Starts with 'sk-': {api_key.startswith('sk-')}")
     
-    # 检查常见问题
+    # Check common issues
     issues = []
     if not api_key.startswith('sk-'):
-        issues.append("API Key 应以 'sk-' 开头")
+        issues.append("API Key should start with 'sk-'")
     if len(api_key) < 32:
-        issues.append("API Key 可能过短（通常至少32字符）")
+        issues.append("API Key may be too short (usually at least 32 characters)")
     if len(api_key) > 64:
-        issues.append("API Key 可能过长")
+        issues.append("API Key may be too long")
     
     if issues:
-        print("⚠ 潜在问题:")
+        print("⚠ Potential issues:")
         for issue in issues:
             print(f"  - {issue}")
     else:
-        print("✓ API Key 格式检查通过")
+        print("✓ API Key format check passed")
 
 def test_with_curl(api_key):
-    """使用 curl 测试 API"""
-    print(f"\n=== 使用 curl 测试 API ===")
+    """Test API using curl"""
+    print(f"\n=== Testing API with curl ===")
     
-    # 测试获取模型列表
-    print("测试 /v1/models 端点...")
+    # Test getting model list
+    print("Testing /v1/models endpoint...")
     import subprocess
     try:
         result = subprocess.run(
@@ -69,33 +69,33 @@ def test_with_curl(api_key):
             timeout=10
         )
         
-        print(f"状态码: {result.returncode}")
-        print(f"响应: {result.stdout}")
+        print(f"Status code: {result.returncode}")
+        print(f"Response: {result.stdout}")
         
         if result.returncode == 0:
             try:
                 data = json.loads(result.stdout)
                 if "data" in data:
-                    print("✓ API 连接成功！")
-                    print(f"可用模型: {len(data['data'])} 个")
+                    print("✓ API connection successful!")
+                    print(f"Available models: {len(data['data'])} models")
                     return True
                 elif "error" in data:
-                    print(f"❌ API 错误: {data['error']}")
+                    print(f"❌ API error: {data['error']}")
                 else:
-                    print(f"⚠ 未知响应格式: {data}")
+                    print(f"⚠ Unknown response format: {data}")
             except json.JSONDecodeError:
-                print(f"⚠ 无法解析 JSON: {result.stdout}")
+                print(f"⚠ Cannot parse JSON: {result.stdout}")
         else:
-            print(f"❌ curl 命令失败: {result.stderr}")
+            print(f"❌ curl command failed: {result.stderr}")
             
     except Exception as e:
-        print(f"❌ 测试失败: {e}")
+        print(f"❌ Test failed: {e}")
     
     return False
 
 def test_with_openai_library(api_key):
-    """使用 OpenAI 库测试 API"""
-    print(f"\n=== 使用 OpenAI 库测试 API ===")
+    """Test API using OpenAI library"""
+    print(f"\n=== Testing API with OpenAI library ===")
     
     try:
         from openai import OpenAI
@@ -105,8 +105,8 @@ def test_with_openai_library(api_key):
             base_url="https://api.deepseek.com"
         )
         
-        # 测试简单的聊天请求
-        print("发送测试请求...")
+        # Test simple chat request
+        print("Sending test request...")
         response = client.chat.completions.create(
             model="deepseek-chat",
             messages=[
@@ -115,47 +115,47 @@ def test_with_openai_library(api_key):
             max_tokens=10
         )
         
-        print(f"✓ API 请求成功！")
-        print(f"响应: {response.choices[0].message.content}")
+        print(f"✓ API request successful!")
+        print(f"Response: {response.choices[0].message.content}")
         return True
         
     except Exception as e:
-        print(f"❌ OpenAI 库测试失败: {e}")
+        print(f"❌ OpenAI library test failed: {e}")
         import traceback
         traceback.print_exc()
         return False
 
 def main():
-    print("=== DeepSeek API 验证工具 ===")
+    print("=== DeepSeek API Verification Tool ===")
     
-    # 加载 API Key
+    # Load API Key
     api_key = load_env()
     if not api_key:
         sys.exit(1)
     
-    # 直接分析 API Key
+    # Direct analysis of API Key
     test_api_key_direct(api_key)
     
-    # 测试 curl
+    # Test curl
     print("\n" + "="*50)
     if test_with_curl(api_key):
-        print("\n✓ curl 测试成功！")
+        print("\n✓ curl test successful!")
     else:
-        print("\n❌ curl 测试失败")
+        print("\n❌ curl test failed")
     
-    # 测试 OpenAI 库
+    # Test OpenAI library
     print("\n" + "="*50)
     if test_with_openai_library(api_key):
-        print("\n✓ OpenAI 库测试成功！")
+        print("\n✓ OpenAI library test successful!")
     else:
-        print("\n❌ OpenAI 库测试失败")
+        print("\n❌ OpenAI library test failed")
     
     print("\n" + "="*50)
-    print("总结:")
-    print("1. 如果所有测试都失败，API Key 可能无效或已过期")
-    print("2. 尝试重新生成 API Key: https://platform.deepseek.com/api_keys")
-    print("3. 检查网络连接和防火墙设置")
-    print("4. 确认账户余额或使用限制")
+    print("Summary:")
+    print("1. If all tests fail, the API Key may be invalid or expired")
+    print("2. Try regenerating the API Key: https://platform.deepseek.com/api_keys")
+    print("3. Check network connection and firewall settings")
+    print("4. Confirm account balance or usage limits")
 
 if __name__ == "__main__":
     main()

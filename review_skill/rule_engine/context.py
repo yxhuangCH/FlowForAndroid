@@ -1,5 +1,5 @@
 """
-规则执行上下文
+Rule execution context
 """
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List
@@ -8,55 +8,55 @@ import hashlib
 
 @dataclass
 class RuleContext:
-    """规则执行上下文"""
-    code: str                      # 代码内容
-    file_path: str                 # 文件路径
-    language: str                  # 编程语言（kotlin/java等）
-    file_hash: str = ""            # 文件哈希（用于缓存）
-    ast: Optional[Any] = None      # AST（如果已解析）
-    project_info: Dict[str, Any] = field(default_factory=dict)  # 项目信息
-    config: Dict[str, Any] = field(default_factory=dict)  # 规则配置
+    """Rule execution context"""
+    code: str                      # Code content
+    file_path: str                 # File path
+    language: str                  # Programming language (kotlin/java, etc.)
+    file_hash: str = ""            # File hash (for caching)
+    ast: Optional[Any] = None      # AST (if parsed)
+    project_info: Dict[str, Any] = field(default_factory=dict)  # Project info
+    config: Dict[str, Any] = field(default_factory=dict)  # Rule config
     
-    # 缓存相关
+    # Cache related
     _cache: Dict[str, Any] = field(default_factory=dict, init=False)
     _line_cache: Dict[str, List[str]] = field(default_factory=dict, init=False)
     
     def __post_init__(self):
-        """后初始化处理"""
+        """Post-init processing"""
         if not self.file_hash:
             self.file_hash = self._calculate_file_hash()
         
-        # 预处理行缓存
+        # Preprocess line cache
         if self.code:
             self._line_cache["raw"] = self.code.split('\n')
     
     def _calculate_file_hash(self) -> str:
-        """计算文件哈希"""
+        """Calculate file hash"""
         content = f"{self.file_path}:{self.code}"
         return hashlib.md5(content.encode('utf-8')).hexdigest()
     
     def get_cached(self, key: str, default: Any = None) -> Any:
-        """获取缓存值"""
+        """Get cached value"""
         return self._cache.get(key, default)
     
     def set_cached(self, key: str, value: Any):
-        """设置缓存值"""
+        """Set cache value"""
         self._cache[key] = value
     
     def clear_cache(self):
-        """清空缓存"""
+        """Clear cache"""
         self._cache.clear()
         self._line_cache.clear()
     
     def get_lines(self, normalized: bool = False) -> List[str]:
         """
-        获取代码行列表
+        Get code line list
         
         Args:
-            normalized: 是否标准化（去除前后空白）
+            normalized: Whether to normalize (remove leading/trailing whitespace)
             
         Returns:
-            代码行列表
+            List of code lines
         """
         cache_key = "normalized" if normalized else "raw"
         if cache_key not in self._line_cache:
@@ -70,14 +70,14 @@ class RuleContext:
     
     def get_line_at(self, line_number: int, normalized: bool = False) -> Optional[str]:
         """
-        获取指定行的内容
+        Get content of specified line
         
         Args:
-            line_number: 行号（从1开始）
-            normalized: 是否标准化
+            line_number: Line number (1-based)
+            normalized: Whether normalized
             
         Returns:
-            行内容或None（如果行号无效）
+            Line content or None (if line number invalid)
         """
         lines = self.get_lines(normalized)
         if 1 <= line_number <= len(lines):
@@ -86,14 +86,14 @@ class RuleContext:
     
     def find_pattern_in_lines(self, pattern: str, case_sensitive: bool = True) -> List[int]:
         """
-        在代码行中查找模式
+        Find pattern in code lines
         
         Args:
-            pattern: 查找模式
-            case_sensitive: 是否大小写敏感
+            pattern: Pattern to find
+            case_sensitive: Whether case sensitive
             
         Returns:
-            匹配的行号列表（从1开始）
+            List of matching line numbers (1-based)
         """
         lines = self.get_lines()
         matches = []

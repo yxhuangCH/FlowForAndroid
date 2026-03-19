@@ -1,6 +1,4 @@
-"""
-测试规则引擎核心接口
-"""
+"""Test Rule Engine"""
 import unittest
 from rule_engine.interfaces import (
     RuleSeverity,
@@ -12,10 +10,10 @@ from rule_engine.interfaces import (
 
 
 class TestRuleSeverity(unittest.TestCase):
-    """测试规则严重级别"""
+    """Tests"""
     
     def test_enum_values(self):
-        """测试枚举值"""
+        """Tests"""
         self.assertEqual(RuleSeverity.INFO.value, "info")
         self.assertEqual(RuleSeverity.MINOR.value, "minor")
         self.assertEqual(RuleSeverity.MAJOR.value, "major")
@@ -23,7 +21,7 @@ class TestRuleSeverity(unittest.TestCase):
         self.assertEqual(RuleSeverity.BLOCKER.value, "blocker")
     
     def test_from_string(self):
-        """测试从字符串创建枚举"""
+        """Tests"""
         self.assertEqual(RuleSeverity("info"), RuleSeverity.INFO)
         self.assertEqual(RuleSeverity("minor"), RuleSeverity.MINOR)
         self.assertEqual(RuleSeverity("major"), RuleSeverity.MAJOR)
@@ -35,10 +33,10 @@ class TestRuleSeverity(unittest.TestCase):
 
 
 class TestRuleCategory(unittest.TestCase):
-    """测试规则分类"""
+    """Tests"""
     
     def test_enum_values(self):
-        """测试枚举值"""
+        """Tests"""
         self.assertEqual(RuleCategory.SECURITY.value, "security")
         self.assertEqual(RuleCategory.PERFORMANCE.value, "performance")
         self.assertEqual(RuleCategory.BEST_PRACTICE.value, "best_practice")
@@ -49,7 +47,7 @@ class TestRuleCategory(unittest.TestCase):
         self.assertEqual(RuleCategory.LIFECYCLE.value, "lifecycle")
     
     def test_from_string(self):
-        """测试从字符串创建枚举"""
+        """Tests"""
         self.assertEqual(RuleCategory("security"), RuleCategory.SECURITY)
         self.assertEqual(RuleCategory("performance"), RuleCategory.PERFORMANCE)
         self.assertEqual(RuleCategory("correctness"), RuleCategory.CORRECTNESS)
@@ -59,21 +57,21 @@ class TestRuleCategory(unittest.TestCase):
 
 
 class TestRuleMetadata(unittest.TestCase):
-    """测试规则元数据"""
+    """Tests"""
     
     def test_basic_creation(self):
-        """测试基本创建"""
+        """Tests"""
         metadata = RuleMetadata(
             id="test_rule",
-            name="测试规则",
-            description="这是一个测试规则",
+            name="TestRule",
+            description="TestRule",
             severity=RuleSeverity.MINOR,
             category=RuleCategory.CORRECTNESS
         )
         
         self.assertEqual(metadata.id, "test_rule")
-        self.assertEqual(metadata.name, "测试规则")
-        self.assertEqual(metadata.description, "这是一个测试规则")
+        self.assertEqual(metadata.name, "TestRule")
+        self.assertEqual(metadata.description, "TestRule")
         self.assertEqual(metadata.severity, RuleSeverity.MINOR)
         self.assertEqual(metadata.category, RuleCategory.CORRECTNESS)
         self.assertTrue(metadata.enabled)
@@ -81,17 +79,17 @@ class TestRuleMetadata(unittest.TestCase):
         self.assertEqual(metadata.tags, [])
     
     def test_with_optional_fields(self):
-        """测试可选字段"""
+        """Tests"""
         metadata = RuleMetadata(
             id="test_rule",
-            name="测试规则",
-            description="描述",
+            name="TestRule",
+            description="",
             severity=RuleSeverity.MAJOR,
             category=RuleCategory.PERFORMANCE,
             enabled=False,
             weight=1.5,
             tags=["android", "kotlin"],
-            suggested_fix="修复建议",
+            suggested_fix="",
             reference_url="https://example.com",
             min_score_deduction=5,
             max_score_deduction=15
@@ -100,18 +98,18 @@ class TestRuleMetadata(unittest.TestCase):
         self.assertFalse(metadata.enabled)
         self.assertEqual(metadata.weight, 1.5)
         self.assertEqual(metadata.tags, ["android", "kotlin"])
-        self.assertEqual(metadata.suggested_fix, "修复建议")
+        self.assertEqual(metadata.suggested_fix, "")
         self.assertEqual(metadata.reference_url, "https://example.com")
         self.assertEqual(metadata.min_score_deduction, 5)
         self.assertEqual(metadata.max_score_deduction, 15)
     
     def test_validation(self):
-        """测试验证"""
+        """Tests"""
         with self.assertRaises(ValueError):
             RuleMetadata(
                 id="",
-                name="测试规则",
-                description="描述",
+                name="TestRule",
+                description="",
                 severity=RuleSeverity.MINOR,
                 category=RuleCategory.CORRECTNESS
             )
@@ -120,7 +118,7 @@ class TestRuleMetadata(unittest.TestCase):
             RuleMetadata(
                 id="test_rule",
                 name="",
-                description="描述",
+                description="",
                 severity=RuleSeverity.MINOR,
                 category=RuleCategory.CORRECTNESS
             )
@@ -128,7 +126,7 @@ class TestRuleMetadata(unittest.TestCase):
         with self.assertRaises(ValueError):
             RuleMetadata(
                 id="test_rule",
-                name="测试规则",
+                name="TestRule",
                 description="",
                 severity=RuleSeverity.MINOR,
                 category=RuleCategory.CORRECTNESS
@@ -136,38 +134,38 @@ class TestRuleMetadata(unittest.TestCase):
 
 
 class TestFinding(unittest.TestCase):
-    """测试审查发现"""
+    """Tests"""
     
     def test_basic_creation(self):
-        """测试基本创建"""
+        """Tests"""
         finding = Finding(
             rule_id="no_globalscope",
-            message="禁止使用GlobalScope",
+            message="GlobalScope",
             severity=RuleSeverity.CRITICAL,
             file_path="Test.kt",
             line_number=42,
             column=10,
             code_snippet="GlobalScope.launch { }",
-            suggestion="使用viewModelScope替代",
+            suggestion="viewModelScope",
             confidence=0.9
         )
         
         self.assertEqual(finding.rule_id, "no_globalscope")
-        self.assertEqual(finding.message, "禁止使用GlobalScope")
+        self.assertEqual(finding.message, "GlobalScope")
         self.assertEqual(finding.severity, RuleSeverity.CRITICAL)
         self.assertEqual(finding.file_path, "Test.kt")
         self.assertEqual(finding.line_number, 42)
         self.assertEqual(finding.column, 10)
         self.assertEqual(finding.code_snippet, "GlobalScope.launch { }")
-        self.assertEqual(finding.suggestion, "使用viewModelScope替代")
+        self.assertEqual(finding.suggestion, "viewModelScope")
         self.assertEqual(finding.confidence, 0.9)
         self.assertEqual(finding.metadata, {})
     
     def test_to_dict(self):
-        """测试转换为字典"""
+        """Tests"""
         finding = Finding(
             rule_id="test_rule",
-            message="测试消息",
+            message="Test",
             severity=RuleSeverity.MINOR,
             file_path="file.kt",
             line_number=10,
@@ -178,17 +176,17 @@ class TestFinding(unittest.TestCase):
         
         self.assertEqual(result["rule"], "test_rule")
         self.assertEqual(result["severity"], "minor")
-        self.assertEqual(result["message"], "测试消息")
+        self.assertEqual(result["message"], "Test")
         self.assertEqual(result["file_path"], "file.kt")
         self.assertEqual(result["line_number"], 10)
         self.assertEqual(result["confidence"], 1.0)
         self.assertEqual(result["extra"], "data")
     
     def test_optional_fields(self):
-        """测试可选字段"""
+        """Tests"""
         finding = Finding(
             rule_id="test_rule",
-            message="测试消息",
+            message="Test",
             severity=RuleSeverity.MAJOR
         )
         
@@ -201,21 +199,21 @@ class TestFinding(unittest.TestCase):
 
 
 class TestRuleBaseClass(unittest.TestCase):
-    """测试规则基类"""
+    """Tests"""
     
     def test_abstract_methods(self):
-        """测试抽象方法"""
-        # 测试Rule是抽象类
+        """Tests"""
+        # TestRule
         self.assertTrue(issubclass(Rule, object))
         
-        # 创建一个具体实现
+        # 
         class ConcreteRule(Rule):
             @property
             def metadata(self):
                 return RuleMetadata(
                     id="concrete_rule",
-                    name="具体规则",
-                    description="具体规则实现",
+                    name="Rule",
+                    description="Rule",
                     severity=RuleSeverity.MINOR,
                     category=RuleCategory.CORRECTNESS
                 )
@@ -225,10 +223,10 @@ class TestRuleBaseClass(unittest.TestCase):
         
         rule = ConcreteRule()
         
-        # 测试元数据
+        # Test
         self.assertEqual(rule.metadata.id, "concrete_rule")
         
-        # 测试check方法（需要上下文）
+        # Testcheck（）
         from rule_engine.context import RuleContext
         context = RuleContext(
             code="test code",
@@ -238,11 +236,11 @@ class TestRuleBaseClass(unittest.TestCase):
         findings = rule.check(context)
         self.assertEqual(findings, [])
         
-        # 测试默认回调方法
+        # Test
         rule.on_register()
         rule.on_unregister()
         
-        # 测试默认扣分计算
+        # TestCalculate
         deduction = rule.get_score_deduction(RuleSeverity.MINOR)
         self.assertEqual(deduction, 5)
         
@@ -259,14 +257,14 @@ class TestRuleBaseClass(unittest.TestCase):
         self.assertEqual(deduction, 0)
     
     def test_custom_score_deduction(self):
-        """测试自定义扣分计算"""
+        """Tests"""
         class CustomRule(Rule):
             @property
             def metadata(self):
                 return RuleMetadata(
                     id="custom_rule",
-                    name="自定义规则",
-                    description="自定义扣分规则",
+                    name="Rule",
+                    description="Rule",
                     severity=RuleSeverity.MINOR,
                     category=RuleCategory.CORRECTNESS,
                     min_score_deduction=2,
@@ -278,14 +276,14 @@ class TestRuleBaseClass(unittest.TestCase):
         
         rule = CustomRule()
         
-        # 测试自定义扣分范围
-        deduction = rule.get_score_deduction(RuleSeverity.MINOR)  # 默认5，但在2-8范围内
+        # Test
+        deduction = rule.get_score_deduction(RuleSeverity.MINOR)  # 5，2-8
         self.assertEqual(deduction, 5)
         
-        deduction = rule.get_score_deduction(RuleSeverity.INFO)  # 默认0，但最小2
+        deduction = rule.get_score_deduction(RuleSeverity.INFO)  # 0，2
         self.assertEqual(deduction, 2)
         
-        deduction = rule.get_score_deduction(RuleSeverity.BLOCKER)  # 默认100，但最大8
+        deduction = rule.get_score_deduction(RuleSeverity.BLOCKER)  # 100，8
         self.assertEqual(deduction, 8)
 
 

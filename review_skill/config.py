@@ -1,6 +1,6 @@
 """
-配置文件管理模块
-支持配置检测范围、文件过滤等设置
+Configuration file management module
+Supports configuration of detection scope, file filtering, and other settings
 """
 
 import os
@@ -10,57 +10,57 @@ import re
 
 
 class ReviewConfig:
-    """代码审查配置类"""
+    """Code review configuration class"""
     
-    # 默认配置
+    # Default configuration
     DEFAULT_CONFIG = {
-        # 要检测的文件扩展名
-        'file_extensions': ['.kt', '.kts'],  # Kotlin 文件
-        # 要检测的目录（相对于项目根目录）
+        # File extensions to detect
+        'file_extensions': ['.kt', '.kts'],  # Kotlin files
+        # Directories to detect (relative to project root)
         'scan_directories': ['app/src/main/java', 'app/src/test/java'],
-        # 要排除的目录模式
+        # Directory patterns to exclude
         'exclude_patterns': ['*/build/*', '*/test/*', '*/debug/*'],
-        # 是否启用语义分析（LLM）
+        # Whether to enable semantic analysis (LLM)
         'enable_semantic_review': True,
-        # 是否生成HTML报告
+        # Whether to generate HTML report
         'generate_html_report': True,
-        # 最小分数阈值（低于此分数会阻塞PR）
+        # Minimum score threshold (below this will block PR)
         'min_score_threshold': 70,
-        # 语言设置 (zh_CN/en_US)
+        # Language setting (zh_CN/en_US)
         'language': 'zh_CN',
     }
     
     def __init__(self, config_file: Optional[str] = None):
-        """初始化配置
+        """Initialize configuration
         
         Args:
-            config_file: 配置文件路径，如果为None则使用默认配置
+            config_file: Configuration file path, if None use default configuration
         """
         self.config = self.DEFAULT_CONFIG.copy()
         
         if config_file and os.path.exists(config_file):
             self.load_config(config_file)
         elif os.path.exists('.env'):
-            # 尝试从.env文件加载配置
+            # Try to load configuration from .env file
             self.load_from_env('.env')
     
     def load_config(self, config_file: str):
-        """从JSON配置文件加载配置"""
+        """Load configuration from JSON file"""
         try:
             import json
             with open(config_file, 'r', encoding='utf-8') as f:
                 user_config = json.load(f)
                 self.config.update(user_config)
         except Exception as e:
-            print(f"⚠ 加载配置文件失败 {config_file}: {e}")
+            print(f"⚠ Failed to load configuration file {config_file}: {e}")
     
     def load_from_env(self, env_file: str):
-        """从.env文件加载配置"""
+        """Load configuration from .env file"""
         try:
             from dotenv import load_dotenv
             load_dotenv(env_file)
             
-            # 从环境变量读取配置
+            # Read configuration from environment variables
             extensions = os.getenv('REVIEW_FILE_EXTENSIONS')
             if extensions:
                 self.config['file_extensions'] = [ext.strip() for ext in extensions.split(',')]
@@ -88,17 +88,17 @@ class ReviewConfig:
                 except ValueError:
                     pass
             
-            # 语言设置
+            # Language setting
             language = os.getenv('REVIEW_LANGUAGE')
             if language:
                 self.config['language'] = language
             
-            # LLM 提供商设置
+            # LLM provider settings
             llm_provider = os.getenv('LLM_PROVIDER')
             if llm_provider:
                 self.config['llm_provider'] = llm_provider
             
-            # LLM 模型设置
+            # LLM model settings
             llm_model = os.getenv('LLM_MODEL')
             if llm_model:
                 self.config['llm_model'] = llm_model
@@ -108,17 +108,17 @@ class ReviewConfig:
             print(_("⚠ Failed to load configuration from environment: {error}").format(error=e))
 
     def get_llm_provider(self) -> str:
-        """获取LLM提供商配置"""
+        """Get LLM provider configuration"""
         return self.config.get('llm_provider', 'auto')
 
     def get_llm_model(self) -> str:
-        """获取LLM模型配置"""
-        # 从环境变量或配置中获取，根据提供商提供默认值
+        """Get LLM model configuration"""
+        # Get from environment variable or configuration, provide default value based on provider
         model = self.config.get('llm_model')
         if model:
             return model
         
-        # 根据提供商返回默认模型
+        # Return default model based on provider
         provider = self.get_llm_provider()
         if provider == 'github_copilot':
             return 'gpt-4o-copilot'
@@ -129,39 +129,39 @@ class ReviewConfig:
         return None
 
     def get_llm_config(self) -> dict:
-        """获取LLM完整配置"""
+        """Get complete LLM configuration"""
         return {
             'provider': self.get_llm_provider(),
             'model': self.get_llm_model(),
         }
     
     def get_file_extensions(self) -> List[str]:
-        """获取要检测的文件扩展名列表"""
+        """Get list of file extensions to detect"""
         return self.config['file_extensions']
     
     def get_scan_directories(self) -> List[str]:
-        """获取要检测的目录列表"""
+        """Get list of directories to detect"""
         return self.config['scan_directories']
     
     def get_exclude_patterns(self) -> List[str]:
-        """获取排除模式列表"""
+        """Get list of exclusion patterns"""
         return self.config['exclude_patterns']
     
     def should_scan_file(self, file_path: str) -> bool:
-        """判断是否应该扫描指定文件
+        """Determine whether to scan specified file
         
         Args:
-            file_path: 文件路径（相对路径）
+            file_path: File path (relative)
             
         Returns:
-            是否应该扫描该文件
+            Whether the file should be scanned
         """
-        # 检查文件扩展名
+        # Check file extension
         ext = Path(file_path).suffix.lower()
         if ext not in self.get_file_extensions():
             return False
         
-        # 检查是否在扫描目录中
+        # Check if in scan directories
         in_scan_dir = False
         for scan_dir in self.get_scan_directories():
             if file_path.startswith(scan_dir):
@@ -171,9 +171,9 @@ class ReviewConfig:
         if not in_scan_dir:
             return False
         
-        # 检查是否匹配排除模式
+        # Check if matches exclusion patterns
         for pattern in self.get_exclude_patterns():
-            # 将 glob 模式转换为正则表达式
+            # Convert glob pattern to regex pattern
             regex_pattern = re.escape(pattern).replace(r'\*', '.*').replace(r'\?', '.')
             if re.match(regex_pattern, file_path):
                 return False
@@ -181,13 +181,13 @@ class ReviewConfig:
         return True
     
     def filter_git_diff(self, diff_text: str) -> str:
-        """过滤git diff，只保留需要扫描的文件
+        """Filter git diff, only keep files that need to be scanned
         
         Args:
-            diff_text: 原始的git diff输出
+            diff_text: Raw git diff output
             
         Returns:
-            过滤后的git diff，只包含需要扫描的文件
+            Filtered git diff containing only files to be scanned
         """
         if not diff_text.strip():
             return diff_text
@@ -201,15 +201,15 @@ class ReviewConfig:
         while i < len(lines):
             line = lines[i]
             
-            # 检测新文件开始
+            # Detect new file start
             if line.startswith('diff --git'):
-                # 提取文件名
+                # Extract file name
                 match = re.search(r'^diff --git a/(.+) b/(.+)$', line)
                 if match:
                     old_file = match.group(1)
                     new_file = match.group(2)
                     
-                    # 检查是否应该扫描此文件
+                    # Check if this file should be scanned
                     should_scan = (self.should_scan_file(old_file) or 
                                  self.should_scan_file(new_file))
                     
@@ -221,20 +221,20 @@ class ReviewConfig:
                         current_file = None
                         in_file_diff = False
                 else:
-                    # 保持原样
+                    # Keep as is
                     filtered_lines.append(line)
                     current_file = None
                     in_file_diff = True
                 i += 1
             
-            # 如果不在扫描文件中，跳过该文件的所有行
+            # If not in scan files, skip all lines of this file
             elif not in_file_diff:
                 i += 1
-                # 跳过直到下一个 diff --git
+                # Skip until next diff --git
                 while i < len(lines) and not lines[i].startswith('diff --git'):
                     i += 1
             
-            # 在扫描文件中，保留所有行
+            # In scan files, keep all lines
             else:
                 filtered_lines.append(line)
                 i += 1
@@ -242,24 +242,24 @@ class ReviewConfig:
         return '\n'.join(filtered_lines)
     
     def is_enabled_semantic_review(self) -> bool:
-        """是否启用语义分析"""
+        """Whether semantic analysis is enabled"""
         return self.config['enable_semantic_review']
     
     def should_generate_html_report(self) -> bool:
-        """是否生成HTML报告"""
+        """Whether to generate HTML report"""
         return self.config['generate_html_report']
     
     def get_min_score_threshold(self) -> int:
-        """获取最小分数阈值"""
+        """Get minimum score threshold"""
         return self.config['min_score_threshold']
     
     def get_language(self) -> str:
-        """获取语言设置"""
+        """Get language setting"""
         return self.config.get('language', 'zh_CN')
     
     def get(self, key, default=None):
-        """字典风格的get方法，用于兼容旧代码"""
-        # 支持嵌套路径，如 "rule_engine.use_new_engine"
+        """Dictionary-style get method for backward compatibility"""
+        # Support nested paths, e.g., "rule_engine.use_new_engine"
         keys = key.split('.')
         value = self.config
         for k in keys:
@@ -270,15 +270,15 @@ class ReviewConfig:
         return value
 
 
-# 全局配置实例
+# Global configuration instance
 _config_instance: Optional[ReviewConfig] = None
 
 
 def get_config() -> ReviewConfig:
-    """获取全局配置实例"""
+    """Get global configuration instance"""
     global _config_instance
     if _config_instance is None:
-        # 查找配置文件
+        # Find configuration file
         config_file = None
         possible_configs = [
             'review_config.json',

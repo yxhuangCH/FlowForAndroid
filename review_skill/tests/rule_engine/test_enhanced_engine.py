@@ -1,6 +1,4 @@
-"""
-测试增强版规则引擎和配置加载器
-"""
+"""Tests"""
 import unittest
 import tempfile
 import os
@@ -8,14 +6,14 @@ import json
 import time
 import sys
 
-# 尝试导入yaml，如果失败则跳过相关测试
+# yaml，Test
 YAML_AVAILABLE = True
 try:
     import yaml
 except ImportError:
     YAML_AVAILABLE = False
 
-# 添加路径以便导入
+# Add
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
 
 from rule_engine.engine import RuleEngine, LRUCache
@@ -28,67 +26,67 @@ from rule_engine.rules.base_rules import NoGlobalScopeRule
 
 
 class TestLRUCache(unittest.TestCase):
-    """测试LRU缓存"""
+    """Tests"""
     
     def test_basic_cache_operations(self):
-        """测试基本缓存操作"""
+        """Tests"""
         cache = LRUCache(max_size=3, ttl=60)
         
-        # 测试设置和获取
+        # TestSetGet
         cache.set("key1", "value1")
         self.assertEqual(cache.get("key1"), "value1")
         
-        # 测试不存在的键
+        # Test
         self.assertIsNone(cache.get("key2"))
         
-        # 测试更新值
+        # TestUpdate
         cache.set("key1", "value1_updated")
         self.assertEqual(cache.get("key1"), "value1_updated")
         
-        # 测试缓存大小
+        # Test
         self.assertEqual(cache.size(), 1)
     
     def test_lru_eviction(self):
-        """测试LRU淘汰策略"""
+        """Tests"""
         cache = LRUCache(max_size=3, ttl=3600)
         
-        # 添加3个条目
+        # Add3
         cache.set("key1", "value1")
         cache.set("key2", "value2")
         cache.set("key3", "value3")
         
-        # 缓存应该满的
+        # Cache
         self.assertEqual(cache.size(), 3)
         
-        # 访问key1，使其成为最近使用的
+        # key1，
         cache.get("key1")
         
-        # 添加第4个条目，应该淘汰最旧的key2
+        # Add4，key2
         cache.set("key4", "value4")
         
-        # key2应该被淘汰
+        # key2
         self.assertIsNone(cache.get("key2"))
-        # key1, key3, key4应该还在
+        # key1, key3, key4
         self.assertEqual(cache.get("key1"), "value1")
         self.assertEqual(cache.get("key3"), "value3")
         self.assertEqual(cache.get("key4"), "value4")
     
     def test_ttl_expiration(self):
-        """测试TTL过期"""
-        cache = LRUCache(max_size=10, ttl=1)  # 1秒TTL
+        """Tests"""
+        cache = LRUCache(max_size=10, ttl=1)  # 1TTL
         
         cache.set("key1", "value1")
         self.assertEqual(cache.get("key1"), "value1")
         
-        # 等待过期
+        # 
         time.sleep(1.1)
         
-        # 应该过期
+        # 
         self.assertIsNone(cache.get("key1"))
         self.assertEqual(cache.size(), 0)
     
     def test_cache_stats(self):
-        """测试缓存统计"""
+        """Tests"""
         cache = LRUCache(max_size=5, ttl=60)
         
         cache.set("key1", "value1")
@@ -104,7 +102,7 @@ class TestLRUCache(unittest.TestCase):
         self.assertIn("key2", stats["keys"])
     
     def test_cache_clear(self):
-        """测试清空缓存"""
+        """Tests"""
         cache = LRUCache(max_size=5, ttl=60)
         
         cache.set("key1", "value1")
@@ -119,17 +117,17 @@ class TestLRUCache(unittest.TestCase):
 
 
 class TestRuleEngine(unittest.TestCase):
-    """测试增强版规则引擎"""
+    """Tests"""
     
     def setUp(self):
-        """每个测试前设置"""
+        """TestSet"""
         self.registry = RuleRegistry()
         self.registry.clear()
         
-        # 注册测试规则
+        # RegisterTestRule
         self.registry.register(NoGlobalScopeRule())
         
-        # 创建自定义测试规则
+        # TestRule
         class TestRule:
             def __init__(self, rule_id):
                 self._metadata = RuleMetadata(
@@ -161,8 +159,8 @@ class TestRuleEngine(unittest.TestCase):
         self.registry.register(self.test_rule)
     
     def test_engine_initialization(self):
-        """测试引擎初始化"""
-        # 默认配置
+        """Tests"""
+        # 
         engine = RuleEngine(self.registry)
         
         self.assertIsNotNone(engine.registry)
@@ -171,7 +169,7 @@ class TestRuleEngine(unittest.TestCase):
         self.assertIsNotNone(engine.max_workers)
         self.assertGreater(engine.max_workers, 0)
         
-        # 带配置初始化
+        # Initialize
         config = {
             "cache": {"enabled": False},
             "parallel": {"enabled": False, "max_workers": 2}
@@ -182,15 +180,15 @@ class TestRuleEngine(unittest.TestCase):
         self.assertEqual(engine_with_config.max_workers, 2)
     
     def test_execute_all_sequential(self):
-        """测试顺序执行"""
+        """Tests"""
         config = {"parallel": {"enabled": False}}
         engine = RuleEngine(self.registry, config)
         
-        # 测试代码
+        # Test
         test_code = """
 fun testFunction() {
     GlobalScope.launch {
-        println("测试")
+        println("Test")
     }
     // test_pattern
 }
@@ -209,19 +207,19 @@ fun testFunction() {
         self.assertIn("execution_time", stats)
         self.assertIn("rule_stats", stats)
         
-        # 验证规则统计
+        # VerifyRuleCount
         self.assertIn("no_globalscope", stats["rule_stats"])
         self.assertIn("test_rule_1", stats["rule_stats"])
     
     def test_execute_all_parallel(self):
-        """测试并行执行"""
+        """Tests"""
         config = {"parallel": {"enabled": True, "max_workers": 2}}
         engine = RuleEngine(self.registry, config)
         
         test_code = """
 fun testFunction() {
     GlobalScope.launch {
-        println("测试")
+        println("Test")
     }
 }
 """
@@ -240,7 +238,7 @@ fun testFunction() {
         self.assertIn("rule_stats", stats)
     
     def test_cache_functionality(self):
-        """测试缓存功能"""
+        """Tests"""
         config = {
             "cache": {"enabled": True, "max_size": 10, "ttl": 60}
         }
@@ -253,27 +251,27 @@ fun testFunction() {
             language="kotlin"
         )
         
-        # 第一次执行（应该缓存）
+        # （）
         findings1, stats1 = engine.execute_all(context, parallel=False)
         self.assertIn("cache_hits", stats1)
         self.assertIn("cache_misses", stats1)
         
-        # 第二次执行（应该命中缓存）
+        # （hits）
         findings2, stats2 = engine.execute_all(context, parallel=False)
         
-        # 两次结果应该相同
+        # 
         self.assertEqual(len(findings1), len(findings2))
         
-        # 第一次应该没有命中，第二次应该有命中
+        # hits，hits
         self.assertGreater(stats1["cache_misses"], 0)
         
-        # 获取缓存统计
+        # Get cache stats
         cache_stats = engine.get_cache_stats()
         self.assertTrue(cache_stats["enabled"])
         self.assertGreater(cache_stats["size"], 0)
     
     def test_engine_stats(self):
-        """测试引擎统计"""
+        """Tests"""
         engine = RuleEngine(self.registry)
         
         stats = engine.get_engine_stats()
@@ -287,7 +285,7 @@ fun testFunction() {
         self.assertIn("cache_stats", stats)
     
     def test_execute_by_category(self):
-        """测试按分类执行"""
+        """Tests"""
         engine = RuleEngine(self.registry)
         
         test_code = "fun test() { GlobalScope.launch {} }"
@@ -297,19 +295,19 @@ fun testFunction() {
             language="kotlin"
         )
         
-        # 执行LIFECYCLE分类的规则
+        # LIFECYCLERule
         findings, stats = engine.execute_by_category(context, "lifecycle")
         
         self.assertGreaterEqual(len(findings), 1)
         self.assertIn("total_rules", stats)
         
-        # 执行不存在的分类
+        # 
         findings_empty, stats_empty = engine.execute_by_category(context, "nonexistent")
         self.assertEqual(len(findings_empty), 0)
         self.assertIn("error", stats_empty)
     
     def test_execute_by_priority(self):
-        """测试按优先级执行"""
+        """Tests"""
         engine = RuleEngine(self.registry)
         
         test_code = "fun test() { GlobalScope.launch {} }"
@@ -325,7 +323,7 @@ fun testFunction() {
         self.assertIn("total_rules", stats)
     
     def test_clear_cache(self):
-        """测试清空缓存"""
+        """Tests"""
         config = {
             "cache": {"enabled": True, "max_size": 10, "ttl": 60}
         }
@@ -338,24 +336,24 @@ fun testFunction() {
             language="kotlin"
         )
         
-        # 执行一次以填充缓存
+        # 
         engine.execute_all(context, parallel=False)
         
-        # 清空缓存
+        # Clear cache
         engine.clear_cache()
         
-        # 验证缓存已清空
+        # VerifyCache cleared
         cache_stats = engine.get_cache_stats()
         self.assertEqual(cache_stats["size"], 0)
 
 
 class TestConfigLoader(unittest.TestCase):
-    """测试配置加载器"""
+    """Tests"""
     
     def test_default_config(self):
-        """测试默认配置"""
+        """Tests"""
         loader = ConfigLoader()
-        config = loader.load(None)  # 不提供配置文件
+        config = loader.load(None)  # 
         
         self.assertIn("rule_engine", config)
         self.assertIn("integration", config)
@@ -370,8 +368,8 @@ class TestConfigLoader(unittest.TestCase):
         self.assertEqual(engine_config["execution_timeout"], 30)
     
     def test_json_config_file(self):
-        """测试JSON配置文件"""
-        # 创建临时JSON配置文件
+        """Tests"""
+        # JSON
         json_config = {
             "rule_engine": {
                 "enabled": False,
@@ -395,14 +393,14 @@ class TestConfigLoader(unittest.TestCase):
             loader = ConfigLoader()
             config = loader.load(config_file)
             
-            # 验证配置被正确加载
+            # VerifyLoad
             engine_config = config["rule_engine"]
             self.assertFalse(engine_config["enabled"])
             self.assertFalse(engine_config["parallel_execution"])
             self.assertEqual(engine_config["max_workers"], 2)
             self.assertFalse(engine_config["cache_enabled"])
             
-            # 验证集成配置
+            # Verify
             review_config = config["integration"]["review"]
             self.assertEqual(review_config["min_score_threshold"], 80)
             self.assertFalse(review_config["block_on_critical"])
@@ -410,12 +408,12 @@ class TestConfigLoader(unittest.TestCase):
             os.unlink(config_file)
     
     def test_yaml_config_file(self):
-        """测试YAML配置文件"""
-        # 如果yaml不可用，跳过测试
+        """Tests"""
+        # yaml，Test
         if not YAML_AVAILABLE:
-            self.skipTest("PyYAML未安装，跳过YAML配置测试")
+            self.skipTest("PyYAML，YAMLTest")
         
-        # 创建临时YAML配置文件
+        # YAML
         yaml_config = """
 rule_engine:
   enabled: false
@@ -439,7 +437,7 @@ integration:
             loader = ConfigLoader()
             config = loader.load(config_file)
             
-            # 验证配置被正确加载
+            # VerifyLoad
             engine_config = config["rule_engine"]
             self.assertFalse(engine_config["enabled"])
             self.assertFalse(engine_config["parallel_execution"])
@@ -448,7 +446,7 @@ integration:
             self.assertEqual(engine_config["cache_max_size"], 500)
             self.assertEqual(engine_config["cache_ttl"], 1800)
             
-            # 验证集成配置
+            # Verify
             review_config = config["integration"]["review"]
             self.assertEqual(review_config["min_score_threshold"], 60)
             self.assertFalse(review_config["generate_html_report"])
@@ -456,8 +454,8 @@ integration:
             os.unlink(config_file)
     
     def test_env_overrides(self):
-        """测试环境变量覆盖"""
-        # 设置环境变量
+        """Tests"""
+        # Setup
         os.environ["RULE_ENGINE_ENABLED"] = "false"
         os.environ["RULE_ENGINE_PARALLEL"] = "false"
         os.environ["RULE_ENGINE_MAX_WORKERS"] = "3"
@@ -467,63 +465,63 @@ integration:
             loader = ConfigLoader()
             config = loader.load(None)
             
-            # 验证环境变量被正确应用
+            # Verify
             engine_config = config["rule_engine"]
             self.assertFalse(engine_config["enabled"])
             self.assertFalse(engine_config["parallel_execution"])
             self.assertEqual(engine_config["max_workers"], 3)
             
-            # 验证集成配置
+            # Verify
             review_config = config["integration"]["review"]
             self.assertEqual(review_config["min_score_threshold"], 75)
         finally:
-            # 清理环境变量
+            # Teardown
             del os.environ["RULE_ENGINE_ENABLED"]
             del os.environ["RULE_ENGINE_PARALLEL"]
             del os.environ["RULE_ENGINE_MAX_WORKERS"]
             del os.environ["REVIEW_MIN_SCORE"]
     
     def test_config_validation(self):
-        """测试配置验证"""
+        """Tests"""
         loader = ConfigLoader()
         
-        # 测试无效配置
+        # Test
         invalid_config = {
             "rule_engine": {
-                "max_workers": -1,  # 无效
-                "cache_max_size": -100,  # 无效
-                "cache_ttl": -50,  # 无效
-                "execution_timeout": -10  # 无效
+                "max_workers": -1,  # 
+                "cache_max_size": -100,  # 
+                "cache_ttl": -50,  # 
+                "execution_timeout": -10  # 
             },
             "integration": {
                 "review": {
-                    "min_score_threshold": 150  # 无效，应该大于100
+                    "min_score_threshold": 150  # ，100
                 }
             }
         }
         
-        # 手动设置配置并验证
+        # Set
         loader.config = loader.DEFAULT_CONFIG.copy()
         loader._deep_merge(loader.config, invalid_config)
         loader._validate_config()
         
-        # 验证无效值被修正
+        # Verify
         engine_config = loader.config["rule_engine"]
-        self.assertIsNone(engine_config["max_workers"])  # 应该被设为None
-        self.assertEqual(engine_config["cache_max_size"], 1000)  # 应该被设为默认值
-        self.assertEqual(engine_config["cache_ttl"], 3600)  # 应该被设为默认值
-        self.assertEqual(engine_config["execution_timeout"], 30)  # 应该被设为默认值
+        self.assertIsNone(engine_config["max_workers"])  # None
+        self.assertEqual(engine_config["cache_max_size"], 1000)  # 
+        self.assertEqual(engine_config["cache_ttl"], 3600)  # 
+        self.assertEqual(engine_config["execution_timeout"], 30)  # 
         
-        # 验证集成配置
+        # Verify
         review_config = loader.config["integration"]["review"]
-        self.assertEqual(review_config["min_score_threshold"], 70)  # 应该被设为默认值
+        self.assertEqual(review_config["min_score_threshold"], 70)  # 
     
     def test_config_methods(self):
-        """测试配置方法"""
+        """Tests"""
         loader = ConfigLoader()
         config = loader.load(None)
         
-        # 测试各种获取方法
+        # TestGet
         engine_config = loader.get_engine_config()
         self.assertIn("enabled", engine_config)
         
@@ -544,15 +542,15 @@ integration:
 
 
 class TestEnhancedReviewRunner(unittest.TestCase):
-    """测试增强版审查运行器"""
+    """Tests"""
     
     def setUp(self):
-        """每个测试前清理注册表"""
+        """TestRegister"""
         registry = RuleRegistry()
         registry.clear()
     
     def test_initialization_with_config(self):
-        """测试带配置的初始化"""
+        """Tests"""
         config = {
             "cache": {
                 "enabled": True,
@@ -570,25 +568,25 @@ class TestEnhancedReviewRunner(unittest.TestCase):
         
         runner = EnhancedReviewRunner(config)
         
-        # 验证配置被正确应用
+        # Verify
         self.assertIn("cache", runner.config)
         self.assertIn("parallel", runner.config)
         self.assertIn("rules", runner.config)
         
-        # 初始化
+        # Initialize
         runner.initialize()
         self.assertTrue(runner._initialized)
         
-        # 获取引擎信息
+        # Get
         engine_info = runner.get_engine_info()
         self.assertTrue(engine_info["initialized"])
         self.assertGreaterEqual(engine_info["rule_count"], 1)
     
     def test_initialization_without_config(self):
-        """测试无配置的初始化（使用配置加载器）"""
-        runner = EnhancedReviewRunner()  # 不提供配置
+        """Tests"""
+        runner = EnhancedReviewRunner()  # 
         
-        # 应该使用配置加载器的默认配置
+        # Load
         self.assertIn("cache", runner.config)
         self.assertIn("parallel", runner.config)
         self.assertIn("rules", runner.config)
@@ -597,15 +595,15 @@ class TestEnhancedReviewRunner(unittest.TestCase):
         self.assertTrue(runner._initialized)
     
     def test_review_with_enhanced_engine(self):
-        """测试使用增强版引擎进行审查"""
+        """Tests"""
         runner = EnhancedReviewRunner()
         runner.initialize()
         
-        # 测试代码
+        # Test
         test_code = """
 fun testFunction() {
     GlobalScope.launch {
-        println("测试")
+        println("Test")
     }
 }
 """
@@ -618,16 +616,16 @@ fun testFunction() {
         self.assertIn("stats", result)
         self.assertIn("engine_stats", result)
         
-        # 应该找到至少一个问题
+        # 
         self.assertGreaterEqual(len(result["findings"]), 1)
         
-        # 验证统计信息包含增强版引擎特有的字段
+        # VerifyCount
         stats = result["stats"]
         self.assertIn("cache_hits", stats)
         self.assertIn("cache_misses", stats)
     
     def test_enhanced_engine_stats(self):
-        """测试增强版引擎统计"""
+        """Tests"""
         runner = EnhancedReviewRunner()
         runner.initialize()
         
@@ -636,22 +634,22 @@ fun testFunction() {
         self.assertTrue(engine_info["initialized"])
         self.assertGreaterEqual(engine_info["rule_count"], 1)
         
-        # 验证统计信息
+        # VerifyCount
         stats = engine_info["statistics"]
         self.assertIn("total_rules", stats)
         self.assertIn("enabled_rules", stats)
         
-        # 验证缓存统计
+        # VerifyCount
         cache_stats = engine_info["cache_stats"]
         self.assertIn("enabled", cache_stats)
         self.assertIn("size", cache_stats)
     
     def test_review_diff_with_enhanced_runner(self):
-        """测试使用增强版运行器审查diff"""
+        """Tests"""
         runner = EnhancedReviewRunner()
         runner.initialize()
         
-        # 模拟Git diff
+        # Git diff
         test_diff = """diff --git a/Test.kt b/Test.kt
 new file mode 100644
 index 0000000..1234567
@@ -661,7 +659,7 @@ index 0000000..1234567
 +class TestClass {
 +    fun testFunction() {
 +        GlobalScope.launch {
-+            println("测试")
++            println("Test")
 +        }
 +    }
 +}
@@ -669,32 +667,32 @@ index 0000000..1234567
         
         results = runner.review_diff(test_diff)
         
-        # 应该至少有一个结果
+        # 
         self.assertGreaterEqual(len(results), 1)
         
-        # 验证结果结构
+        # Verify
         result = results[0]
         self.assertEqual(result["file"], "Test.kt")
         self.assertIn("findings", result)
         
-        # 应该找到GlobalScope问题
+        # GlobalScope
         if result["findings"]:
             rule_ids = [f["rule"] for f in result["findings"]]
             self.assertIn("no_globalscope", rule_ids)
 
 
 def run_tests():
-    """运行所有测试"""
-    # 创建测试套件
+    """Test"""
+    # Test
     suite = unittest.TestSuite()
     
-    # 添加测试类
+    # AddTest
     suite.addTest(unittest.makeSuite(TestLRUCache))
     suite.addTest(unittest.makeSuite(TestRuleEngine))
     suite.addTest(unittest.makeSuite(TestConfigLoader))
     suite.addTest(unittest.makeSuite(TestEnhancedReviewRunner))
     
-    # 运行测试
+    # Test
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
     
@@ -702,12 +700,12 @@ def run_tests():
 
 
 if __name__ == "__main__":
-    print("运行增强版规则引擎测试...")
+    print("Rule EngineTest...")
     success = run_tests()
     
     if success:
-        print("🎉 所有测试通过!")
+        print("🎉 Test!")
     else:
-        print("⚠️ 部分测试失败")
+        print("⚠️ Test")
     
     sys.exit(0 if success else 1)

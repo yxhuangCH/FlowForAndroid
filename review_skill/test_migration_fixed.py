@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-修复的规则迁移效果测试
+Fixed rule migration effect test
 """
 import sys
 import os
@@ -12,49 +12,49 @@ from rule_engine.registry import RuleRegistry
 
 
 def clear_registry():
-    """清理规则注册表"""
+    """Clear rule registry"""
     registry = RuleRegistry()
     registry.clear()
 
 
 def test_migrated_rules():
-    """测试迁移后的规则"""
-    print("=== 测试迁移后的规则 ===")
+    """Test migrated rules"""
+    print("=== Testing Migrated Rules ===")
     
-    # 清理注册表，避免规则ID冲突
+    # Clear registry to avoid rule ID conflicts
     clear_registry()
     
-    # 创建运行器
+    # Create runner
     runner = EnhancedReviewRunner({
         "rules": {
-            "enabled_rules": ["all"],  # 启用所有规则
+            "enabled_rules": ["all"],  # Enable all rules
             "disabled_rules": []
         }
     })
     
     runner.initialize()
     
-    print(f"引擎已初始化，注册规则数: {runner.registry.count_rules()}")
+    print(f"Engine initialized, registered rules: {runner.registry.count_rules()}")
     
-    # 获取引擎信息
+    # Get engine info
     engine_info = runner.get_engine_info()
-    print(f"引擎统计: {engine_info}")
+    print(f"Engine stats: {engine_info}")
     
-    # 测试各种代码片段 - 更新预期规则ID以匹配实际注册的ID
+    # Test various code snippets - update expected rule IDs to match actually registered IDs
     test_cases = [
         {
-            "name": "GlobalScope检测",
+            "name": "GlobalScope Detection",
             "code": """
 fun test() {
     GlobalScope.launch {
-        println("在GlobalScope中执行")
+        println("Executing in GlobalScope")
     }
 }
 """,
             "expected_rules": ["no_globalscope"]
         },
         {
-            "name": "协程主线程IO检测",
+            "name": "Coroutine Main Thread IO Detection",
             "code": """
 fun test() {
     Dispatchers.Main {
@@ -65,30 +65,30 @@ fun test() {
             "expected_rules": ["coroutine_main_thread_io"]
         },
         {
-            "name": "未指定协程作用域",
+            "name": "Unspecified Coroutine Scope",
             "code": """
 fun test() {
     launch {
-        println("没有指定作用域")
+        println("No scope specified")
     }
 }
 """,
             "expected_rules": ["unspecified_scope"]
         },
         {
-            "name": "LaunchedEffect(Unit)检测",
+            "name": "LaunchedEffect(Unit) Detection",
             "code": """
 @Composable
 fun TestScreen() {
     LaunchedEffect(Unit) {
-        // 做一些事情
+        // Doing something
     }
 }
 """,
             "expected_rules": ["launched_effect_unit"]
         },
         {
-            "name": "remember持有Context",
+            "name": "remember Holding Context",
             "code": """
 @Composable
 fun TestScreen(context: Context) {
@@ -100,7 +100,7 @@ fun TestScreen(context: Context) {
             "expected_rules": ["remember_context"]
         },
         {
-            "name": "ViewModel持有Context",
+            "name": "ViewModel Holding Context",
             "code": """
 class MyViewModel(context: Context) : ViewModel() {
     private val appContext = context
@@ -109,7 +109,7 @@ class MyViewModel(context: Context) : ViewModel() {
             "expected_rules": ["viewmodel_context"]
         },
         {
-            "name": "base_rules主线程IO检测",
+            "name": "base_rules Main Thread IO Detection",
             "code": """
 fun test() {
     Dispatchers.Main {
@@ -126,10 +126,10 @@ fun test() {
     
     for test_case in test_cases:
         total_tests += 1
-        print(f"\n测试: {test_case['name']}")
+        print(f"\nTest: {test_case['name']}")
         
         try:
-            # 执行审查
+            # Execute review
             result = runner.review_code(
                 code=test_case['code'],
                 file_path="Test.kt",
@@ -139,10 +139,10 @@ fun test() {
             findings = result.get("findings", [])
             score = result.get("score", 100)
             
-            print(f"  分数: {score}")
-            print(f"  发现的问题数: {len(findings)}")
+            print(f"  Score: {score}")
+            print(f"  Issues found: {len(findings)}")
             
-            # 检查是否检测到预期的规则
+            # Check if expected rules were detected
             found_rule_ids = [f.get("rule") for f in findings]
             expected_rules = test_case['expected_rules']
             
@@ -150,69 +150,69 @@ fun test() {
             for expected_rule in expected_rules:
                 if expected_rule in found_rule_ids:
                     matches.append(expected_rule)
-                    print(f"  ✓ 检测到规则: {expected_rule}")
+                    print(f"  ✓ Detected rule: {expected_rule}")
                 else:
-                    print(f"  ✗ 未检测到规则: {expected_rule}")
+                    print(f"  ✗ Rule not detected: {expected_rule}")
             
-            # 打印所有发现的问题
+            # Print all discovered issues
             if findings:
-                print("  详细问题:")
+                print("  Detailed issues:")
                 for finding in findings:
                     print(f"    - [{finding.get('severity', 'unknown')}] {finding.get('rule', 'unknown')}: {finding.get('message', '')}")
             else:
-                print("  无发现问题")
+                print("  No issues found")
             
             if len(matches) == len(expected_rules):
                 passed_tests += 1
-                print(f"  ✅ 测试通过")
+                print(f"  ✅ Test passed")
             else:
-                print(f"  ❌ 测试失败")
-                # 打印当前启用的规则ID以便调试
+                print(f"  ❌ Test failed")
+                # Print currently enabled rule IDs for debugging
                 enabled_rules = [rule.metadata.id for rule in runner.registry.get_all_rules(enabled_only=True)]
-                print(f"  当前启用的规则: {enabled_rules}")
+                print(f"  Currently enabled rules: {enabled_rules}")
                 
         except Exception as e:
-            print(f"  ❌ 测试异常: {e}")
+            print(f"  ❌ Test exception: {e}")
             import traceback
             traceback.print_exc()
     
-    print(f"\n=== 测试总结 ===")
-    print(f"总计测试: {total_tests}")
-    print(f"通过测试: {passed_tests}")
-    print(f"失败测试: {total_tests - passed_tests}")
+    print(f"\n=== Test Summary ===")
+    print(f"Total tests: {total_tests}")
+    print(f"Passed tests: {passed_tests}")
+    print(f"Failed tests: {total_tests - passed_tests}")
     
-    if passed_tests >= total_tests * 0.7:  # 允许部分失败
-        print("✅ 迁移规则测试基本通过!")
+    if passed_tests >= total_tests * 0.7:  # Allow partial failures
+        print("✅ Migrated rule tests passed!")
         return True
     else:
-        print("⚠️ 迁移规则测试失败较多")
+        print("⚠️ Too many migrated rule tests failed")
         return False
 
 
 def test_backward_compatibility():
-    """测试向后兼容性"""
-    print("\n=== 测试向后兼容性 ===")
+    """Test backward compatibility"""
+    print("\n=== Testing Backward Compatibility ===")
     
-    # 清理注册表
+    # Clear registry
     clear_registry()
     
-    # 创建运行器，启用旧规则适配器
+    # Create runner with legacy rule adapter enabled
     runner = EnhancedReviewRunner({
         "rules": {
             "enabled_rules": ["no_globalscope_legacy", "coroutine_rules_legacy", "compose_rules_legacy"],
-            "disabled_rules": ["no_globalscope", "main_thread_io", "viewmodel_context", "coroutine_main_thread_io", "unspecified_scope", "launched_effect_unit", "remember_context"]  # 禁用新规则
+            "disabled_rules": ["no_globalscope", "main_thread_io", "viewmodel_context", "coroutine_main_thread_io", "unspecified_scope", "launched_effect_unit", "remember_context"]  # Disable new rules
         }
     })
     
     runner.initialize()
     
-    print(f"向后兼容模式注册规则数: {runner.registry.count_rules()}")
+    print(f"Backward compatibility mode registered rules: {runner.registry.count_rules()}")
     
-    # 测试旧规则适配器
+    # Test legacy rule adapter
     test_code = """
 fun test() {
     GlobalScope.launch {
-        // 旧规则应该能检测到
+        // Legacy rules should detect this
     }
 }
 """
@@ -225,24 +225,24 @@ fun test() {
     
     findings = result.get("findings", [])
     
-    print(f"  旧规则适配器发现的问题数: {len(findings)}")
+    print(f"  Legacy rule adapter issues found: {len(findings)}")
     
     if findings:
-        print("  ✓ 旧规则适配器工作正常")
+        print("  ✓ Legacy rule adapter working normally")
         return True
     else:
-        print("  ⚠ 旧规则适配器未发现问题（可能需要检查配置）")
-        # 打印启用的规则以便调试
+        print("  ⚠ Legacy rule adapter did not detect issues (may need to check configuration)")
+        # Print enabled rules for debugging
         enabled_rules = [rule.metadata.id for rule in runner.registry.get_all_rules(enabled_only=True)]
-        print(f"  启用的规则: {enabled_rules}")
-        return True  # 不认为这是失败
+        print(f"  Enabled rules: {enabled_rules}")
+        return True  # Not considered a failure
 
 
 def test_engine_performance():
-    """测试引擎性能"""
-    print("\n=== 测试引擎性能 ===")
+    """Test engine performance"""
+    print("\n=== Testing Engine Performance ===")
     
-    # 清理注册表
+    # Clear registry
     clear_registry()
     
     runner = EnhancedReviewRunner({
@@ -252,11 +252,11 @@ def test_engine_performance():
     })
     runner.initialize()
     
-    # 创建较大的测试代码
+    # Create larger test code
     large_code = """
 class PerformanceTest {
     fun test1() {
-        // 一些代码
+        // Some code
     }
     
     fun test2() {
@@ -270,7 +270,7 @@ class PerformanceTest {
     @Composable
     fun TestScreen() {
         LaunchedEffect(Unit) {
-            // 做一些事情
+            // Doing something
         }
         
         val context = LocalContext.current
@@ -284,7 +284,7 @@ class PerformanceTest {
         
         fun doWork() {
             launch {
-                // 没有指定作用域
+                // No scope specified
             }
         }
     }
@@ -293,7 +293,7 @@ class PerformanceTest {
     
     import time
     
-    # 测试顺序执行
+    # Test sequential execution
     start_time = time.time()
     result_sequential = runner.review_code(
         code=large_code,
@@ -302,27 +302,27 @@ class PerformanceTest {
     )
     sequential_time = time.time() - start_time
     
-    print(f"  顺序执行时间: {sequential_time:.3f} 秒")
-    print(f"  顺序执行发现的问题: {len(result_sequential.get('findings', []))}")
+    print(f"  Sequential execution time: {sequential_time:.3f} seconds")
+    print(f"  Sequential execution issues found: {len(result_sequential.get('findings', []))}")
     
-    # 获取引擎统计
+    # Get engine stats
     engine_info = runner.get_engine_info()
     cache_stats = engine_info.get("cache_stats", {})
-    print(f"  缓存大小: {cache_stats.get('cache_size', 0)}")
+    print(f"  Cache size: {cache_stats.get('cache_size', 0)}")
     
-    print("  ✅ 性能测试完成")
+    print("  ✅ Performance test completed")
     
     return True
 
 
 def test_simple_integration():
-    """简单集成测试"""
-    print("\n=== 简单集成测试 ===")
+    """Simple integration test"""
+    print("\n=== Simple Integration Test ===")
     
-    # 清理注册表
+    # Clear registry
     clear_registry()
     
-    # 创建运行器
+    # Create runner
     runner = EnhancedReviewRunner({
         "rules": {
             "enabled_rules": ["all"]
@@ -331,7 +331,7 @@ def test_simple_integration():
     
     runner.initialize()
     
-    # 创建一个包含多个问题的代码
+    # Create code with multiple issues
     test_code = """
 package com.example.test
 
@@ -353,7 +353,7 @@ class MyViewModel(context: Context) : ViewModel() {
         }
         
         launch {
-            println("无作用域")
+            println("No scope")
         }
     }
 }
@@ -361,7 +361,7 @@ class MyViewModel(context: Context) : ViewModel() {
 @Composable
 fun MyScreen(context: Context) {
     LaunchedEffect(Unit) {
-        // 做一些事情
+        // Doing something
     }
     
     val data = remember {
@@ -379,10 +379,10 @@ fun MyScreen(context: Context) {
     findings = result.get("findings", [])
     score = result.get("score", 100)
     
-    print(f"  分数: {score}")
-    print(f"  发现问题数: {len(findings)}")
+    print(f"  Score: {score}")
+    print(f"  Issues found: {len(findings)}")
     
-    # 按规则ID分组
+    # Group by rule ID
     rules_found = {}
     for finding in findings:
         rule_id = finding.get("rule", "unknown")
@@ -390,26 +390,26 @@ fun MyScreen(context: Context) {
             rules_found[rule_id] = []
         rules_found[rule_id].append(finding)
     
-    print(f"  检测到的规则类型: {list(rules_found.keys())}")
+    print(f"  Detected rule types: {list(rules_found.keys())}")
     
-    # 期望检测到一些规则
+    # Expect to detect some rules
     if len(findings) > 0:
-        print("  ✅ 集成测试通过 - 检测到代码问题")
+        print("  ✅ Integration test passed - code issues detected")
         return True
     else:
-        print("  ⚠ 集成测试 - 未检测到问题")
-        return True  # 不一定是失败
+        print("  ⚠ Integration test - no issues detected")
+        return True  # Not necessarily a failure
 
 
 def main():
-    """主测试函数"""
-    print("修复的规则迁移效果测试\n")
+    """Main test function"""
+    print("Fixed Rule Migration Effect Test\n")
     
     tests = [
-        ("迁移规则功能", test_migrated_rules),
-        ("向后兼容性", test_backward_compatibility),
-        ("引擎性能", test_engine_performance),
-        ("简单集成", test_simple_integration),
+        ("Migrated Rule Functionality", test_migrated_rules),
+        ("Backward Compatibility", test_backward_compatibility),
+        ("Engine Performance", test_engine_performance),
+        ("Simple Integration", test_simple_integration),
     ]
     
     passed = 0
@@ -418,39 +418,39 @@ def main():
     for test_name, test_func in tests:
         try:
             print(f"\n{'='*50}")
-            print(f"开始测试: {test_name}")
+            print(f"Starting test: {test_name}")
             print(f"{'='*50}")
             
             if test_func():
-                print(f"\n✅ {test_name}测试通过")
+                print(f"\n✅ {test_name} test passed")
                 passed += 1
             else:
-                print(f"\n❌ {test_name}测试失败")
+                print(f"\n❌ {test_name} test failed")
                 failed += 1
         except Exception as e:
-            print(f"\n❌ {test_name}测试异常: {e}")
+            print(f"\n❌ {test_name} test exception: {e}")
             import traceback
             traceback.print_exc()
             failed += 1
     
     print(f"\n{'='*50}")
-    print(f"测试总结: {passed} 通过, {failed} 失败")
+    print(f"Test summary: {passed} passed, {failed} failed")
     
     if failed == 0:
-        print("🎉 所有测试通过!")
-        print("\n规则迁移成功完成，新引擎已准备好投入使用。")
-        print("\n下一步建议:")
-        print("1. 在生产环境中逐步启用新规则引擎")
-        print("2. 监控新引擎的性能和准确性")
-        print("3. 逐步淘汰旧规则系统")
-        print("4. 继续迁移剩余的规则模块")
+        print("🎉 All tests passed!")
+        print("\nRule migration successfully completed, new engine is ready for production use.")
+        print("\nNext steps:")
+        print("1. Gradually enable new rule engine in production environment")
+        print("2. Monitor performance and accuracy of new engine")
+        print("3. Gradually phase out old rule system")
+        print("4. Continue migrating remaining rule modules")
         return 0
-    elif passed >= 3:  # 大部分通过
-        print("✅ 大部分测试通过，规则迁移基本成功!")
-        print("\n注意: 部分规则可能需要进行微调，但核心迁移已完成。")
+    elif passed >= 3:  # Most passed
+        print("✅ Most tests passed, rule migration basically successful!")
+        print("\nNote: Some rules may need fine-tuning, but core migration is complete.")
         return 0
     else:
-        print("⚠️ 测试失败较多，需要进一步调试")
+        print("⚠️ Too many tests failed, further debugging needed")
         return 1
 
 

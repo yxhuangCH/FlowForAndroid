@@ -8,10 +8,10 @@ from typing import Dict, List
 from config import get_config
 import traceback
 
-# 导入国际化模块
+# Import i18n module
 from i18n import init_i18n, _
 
-# 尝试导入 LLM 层，如果可用的话
+# Try to import LLM layer if available
 LLM_AVAILABLE = False
 try:
     from llm_layer import semantic_review
@@ -23,7 +23,7 @@ except Exception as e:
     LLM_AVAILABLE = False
     print(_("⚠ LLM layer initialization failed: {error}").format(error=e))
 
-# 导入统一规则引擎
+# Import unified rule engine
 RULE_ENGINE_AVAILABLE = False
 try:
     from rule_engine.integration.review_runner import ReviewRunner
@@ -33,7 +33,7 @@ try:
 except ImportError as e:
     RULE_ENGINE_AVAILABLE = False
     print(_("⚠ Rule engine import failed: {error}").format(error=e))
-    # 回退到旧的错误处理
+    # Fallback to old error handling
     class ReviewError(Exception):
         pass
     class ConfigurationError(ReviewError):
@@ -44,7 +44,7 @@ except Exception as e:
     RULE_ENGINE_AVAILABLE = False
     print(_("⚠ Rule engine initialization failed: {error}").format(error=e))
 
-# 尝试导入HTML报告生成器
+# Try to import HTML report generator
 REPORT_GENERATOR_AVAILABLE = False
 try:
     from report_generator import GitDiffParser, HTMLReportGenerator
@@ -57,9 +57,9 @@ except Exception as e:
     print(_("⚠ Report generator initialization failed: {error}").format(error=e))
 
 
-# 获取 git diff
+# Get git diff
 def get_git_diff():
-    # 尝试多种方式获取代码变更
+    # Try multiple ways to get code changes
     diff_commands = [
         ["git", "diff", "original/develop...HEAD"],
         ["git", "diff", "HEAD~1", "HEAD"],
@@ -75,16 +75,16 @@ def get_git_diff():
         if result.stdout.strip():
             return result.stdout
     
-    # 如果都没有变更，返回空字符串
+    # If no changes found, return empty string
     return ""
 
 
 def _review_with_new_engine(diff: str, config) -> Dict:
-    """使用新引擎进行审查"""
+    """Review using new engine"""
     try:
         from rule_engine.integration.review_runner import ReviewRunner
         
-        # 创建运行器
+        # Create runner
         new_engine_config = config.get("rule_engine.new_engine_config", {})
         runner_config = {
             "rules": {
@@ -97,10 +97,10 @@ def _review_with_new_engine(diff: str, config) -> Dict:
         runner = ReviewRunner(runner_config)
         runner.initialize()
         
-        # 审查diff
+        # Review diff
         results = runner.review_diff(diff)
         
-        # 合并所有发现
+        # Merge all findings
         all_findings = []
         total_score = 0
         file_count = 0
@@ -110,7 +110,7 @@ def _review_with_new_engine(diff: str, config) -> Dict:
             total_score += file_result["score"]
             file_count += 1
         
-        # 计算平均分
+        # Calculate average score
         score = total_score // file_count if file_count > 0 else 100
         
         min_score = config.get_min_score_threshold()
@@ -128,31 +128,31 @@ def _review_with_new_engine(diff: str, config) -> Dict:
         print(_("⚠ New rule engine execution failed: {error}").format(error=e))
         import traceback
         traceback.print_exc()
-        # 回退到旧引擎
+        # Fallback to old engine
         return _review_with_old_engine(diff, config)
 
 
 def _review_with_old_engine(diff: str, config) -> Dict:
-    """回退到基础引擎进行审查（已迁移所有规则到新引擎）"""
+    """Fallback to base engine for review (all rules migrated to new engine)"""
     try:
-        # 尝试使用基础的新引擎配置
+        # Try to use base new engine configuration
         from rule_engine.integration.review_runner import ReviewRunner
         
-        # 创建最小化配置的基础运行器
+        # Create base runner with minimal configuration
         runner_config = {
             "rules": {
                 "enabled_categories": ["lifecycle", "concurrency", "correctness"],
-                "parallel_execution": False  # 禁用并行执行以兼容性优先
+                "parallel_execution": False  # Disable parallel execution for compatibility
             }
         }
         
         runner = ReviewRunner(runner_config)
         runner.initialize()
         
-        # 审查diff
+        # Review diff
         results = runner.review_diff(diff)
         
-        # 合并所有发现
+        # Merge all findings
         all_findings = []
         total_score = 0
         file_count = 0
@@ -162,7 +162,7 @@ def _review_with_old_engine(diff: str, config) -> Dict:
             total_score += file_result["score"]
             file_count += 1
         
-        # 计算平均分
+        # Calculate average score
         score = total_score // file_count if file_count > 0 else 100
         
         min_score = config.get_min_score_threshold()
@@ -180,7 +180,7 @@ def _review_with_old_engine(diff: str, config) -> Dict:
         print(_("⚠ Fallback engine execution failed: {error}").format(error=e))
         import traceback
         traceback.print_exc()
-        # 最终回退：返回空结果
+        # Final fallback: return empty result
         return {
             "findings": [],
             "score": 100,
@@ -190,17 +190,17 @@ def _review_with_old_engine(diff: str, config) -> Dict:
 
 
 def review():
-    # 获取配置
+    # Get configuration
     config = get_config()
     
-    # 获取原始的git diff
+    # Get raw git diff
     raw_diff = get_git_diff()
     
     if not raw_diff.strip():
         print(_("No changes to review. Git diff is empty."))
         return
     
-    # 过滤diff，只扫描符合配置的文件
+    # Filter diff to only scan files matching configuration
     diff = config.filter_git_diff(raw_diff)
     
     if not diff.strip():
@@ -209,7 +209,7 @@ def review():
         print(_("Configured scan directories: {directories}").format(directories=config.get_scan_directories()))
         return
 
-    # 总是使用统一规则引擎（如果可用）
+    # Always use unified rule engine (if available)
     if RULE_ENGINE_AVAILABLE:
         print(_("Using unified rule engine for review..."))
         try:
@@ -222,30 +222,30 @@ def review():
         print(_("Unified rule engine not available, using old rule engine..."))
         result = _review_with_old_engine(diff, config)
     
-    # 如果 LLM 可用且有代码变更，进行语义审查
+    # If LLM is available and there are code changes, perform semantic review
     llm_findings = []
     if LLM_AVAILABLE and diff.strip() and config.is_enabled_semantic_review():
         try:
-            # 限制代码长度，避免超过 token 限制
-            code_sample = diff[:2000]  # 取前2000个字符进行语义分析
+            # Limit code length to avoid exceeding token limit
+            code_sample = diff[:2000]  # Take first 2000 characters for semantic analysis
             llm_result = semantic_review(code_sample)
             if llm_result:
                 llm_findings.append({
                     "severity": "info",
                     "rule": "llm_semantic_review",
-                    "message": f"LLM语义分析: {llm_result}"
+                    "message": f"LLM Semantic Analysis: {llm_result}"
                 })
         except Exception as e:
             llm_findings.append({
                 "severity": "warning",
                 "rule": "llm_error",
-                "message": f"LLM语义分析失败: {str(e)}"
+                "message": f"LLM semantic analysis failed: {str(e)}"
             })
     
-    # 合并所有发现
+    # Merge all findings
     all_findings = result["findings"] + llm_findings
 
-    # 更新结果
+    # Update result
     result["findings"] = all_findings
     result["llm_available"] = LLM_AVAILABLE
     result["config"] = {
@@ -259,13 +259,13 @@ def review():
 
     print(json.dumps(result, indent=2))
 
-    # 生成HTML报告
+    # Generate HTML report
     if REPORT_GENERATOR_AVAILABLE and diff.strip():
         try:
-            # 解析git diff
+            # Parse git diff
             diff_data = GitDiffParser.parse(diff)
             
-            # 生成HTML报告 - 保存到report目录
+            # Generate HTML report - save to report directory
             report_dir = Path(__file__).parent / 'report'
             report_dir.mkdir(exist_ok=True)
             
@@ -275,7 +275,7 @@ def review():
             
             report_path = HTMLReportGenerator.generate_report(
                 diff_data=diff_data,
-                findings=result["findings"],  # 使用所有发现（包括LLM）
+                findings=result["findings"],  # Use all findings (including LLM)
                 score=result["score"],
                 output_path=str(html_report_path)
             )
@@ -284,7 +284,7 @@ def review():
             print(_("📂 Open report: open {path}").format(path=report_path))
             print(_("📁 Report directory: {directory}").format(directory=report_dir))
             
-            # 同时生成一个更详细的JSON报告
+            # Also generate a more detailed JSON report
             detailed_result = {
                 "timestamp": datetime.now().isoformat(),
                 "diff_files_count": len(diff_data),
@@ -298,7 +298,7 @@ def review():
                 "file_count": result.get("file_count", 0)
             }
             
-            # 按包名分组
+            # Group by package name
             for file_data in diff_data:
                 package = file_data['package']
                 if package not in detailed_result["files_by_package"]:
@@ -308,7 +308,7 @@ def review():
                     "language": file_data['language']
                 })
             
-            # 保存详细JSON报告到report目录
+            # Save detailed JSON report to report directory
             with open(json_report_path, 'w', encoding='utf-8') as f:
                 json.dump(detailed_result, f, indent=2, ensure_ascii=False)
             

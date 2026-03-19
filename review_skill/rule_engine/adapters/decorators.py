@@ -1,5 +1,5 @@
 """
-规则装饰器，用于简化规则定义
+Rule decorators for simplifying rule definition
 """
 from functools import wraps
 from typing import Callable, List, Optional, Dict, Any
@@ -19,33 +19,33 @@ def rule(
     **kwargs
 ):
     """
-    规则装饰器，将函数转换为Rule对象
+    Rule decorator, converts function to Rule object
     
     Args:
-        rule_id: 规则ID
-        name: 规则名称（默认使用rule_id转换）
-        description: 规则描述
-        severity: 严重级别
-        category: 规则分类
-        enabled: 是否启用
-        weight: 权重
-        tags: 标签列表
-        **kwargs: 其他RuleMetadata参数
+        rule_id: Rule ID
+        name: Rule name (default: converted from rule_id)
+        description: Rule description
+        severity: Severity level
+        category: Rule category
+        enabled: Whether enabled
+        weight: Weight
+        tags: Tag list
+        **kwargs: Other RuleMetadata parameters
         
     Returns:
-        装饰器函数
+        Decorator function
     """
     def decorator(func: Callable[[RuleContext], List[Finding]]):
-        """实际的装饰器"""
+        """Actual decorator"""
         
         class FunctionRule(Rule):
-            """函数式规则"""
+            """Function-based rule"""
             
             def __init__(self):
                 self._metadata = RuleMetadata(
                     id=rule_id,
                     name=name or rule_id.replace("_", " ").title(),
-                    description=description or f"规则: {rule_id}",
+                    description=description or f"Rule: {rule_id}",
                     severity=severity,
                     category=category,
                     enabled=enabled,
@@ -61,7 +61,7 @@ def rule(
             def check(self, context: RuleContext) -> List[Finding]:
                 return func(context)
         
-        # 保存原始函数引用
+        # Save original function reference
         FunctionRule._original_func = func
         
         return FunctionRule()
@@ -77,30 +77,30 @@ def pattern_rule(
     **rule_kwargs
 ):
     """
-    模式匹配规则装饰器
+    Pattern matching rule decorator
     
     Args:
-        pattern: 要匹配的模式
-        rule_id: 规则ID（默认自动生成）
-        message: 问题描述（默认使用pattern）
-        case_sensitive: 是否大小写敏感
-        **rule_kwargs: 传递给rule装饰器的参数
+        pattern: Pattern to match
+        rule_id: Rule ID (default: auto-generated)
+        message: Issue description (default: uses pattern)
+        case_sensitive: Whether case sensitive
+        **rule_kwargs: Parameters passed to rule decorator
         
     Returns:
-        装饰器函数
+        Decorator function
     """
     if rule_id is None:
-        # 基于模式生成规则ID
+        # Generate rule ID based on pattern
         rule_id = f"pattern_{hash(pattern) % 10000:04d}"
     
     if message is None:
-        message = f"代码中包含模式: {pattern}"
+        message = f"Code contains pattern: {pattern}"
     
     @rule(rule_id=rule_id, message=message, **rule_kwargs)
     def pattern_checker(context: RuleContext) -> List[Finding]:
         findings = []
         
-        # 查找模式
+        # Find pattern
         line_numbers = context.find_pattern_in_lines(pattern, case_sensitive)
         
         for line_number in line_numbers:

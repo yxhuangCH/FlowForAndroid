@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 """
-测试 review skill 功能
-这个脚本用于验证 review skill 是否能正确检测代码问题
+Test Review Skill Functionality
+
+This script verifies that the review skill can correctly detect code issues
 """
 import os
 import sys
 import tempfile
 from pathlib import Path
 
-# 添加当前目录到路径
+# Add current directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# 测试代码：包含已知问题的代码
+# Test code: contains known issues
 TEST_CODE = '''
 package com.example.test
 
@@ -21,13 +22,13 @@ import kotlinx.coroutines.launch
 class TestViewModel(val context: android.content.Context) {
     fun doSomething() {
         GlobalScope.launch {
-            // 在 GlobalScope 中执行
-            println("测试")
+            // Execute in GlobalScope
+            println("Test")
         }
     }
     
     fun doIO() {
-        // 在主线程执行 IO 操作
+        // Execute IO operation on main thread
         val file = java.io.File("/path/to/file")
         file.readText()
     }
@@ -35,40 +36,40 @@ class TestViewModel(val context: android.content.Context) {
 '''
 
 def test_git_diff_logic():
-    """测试 git diff 获取逻辑"""
+    """Test git diff retrieval logic"""
     from review import get_git_diff
     
-    print("=== 测试 git diff 获取逻辑 ===")
+    print("=== Testing Git Diff Retrieval Logic ===")
     
-    # 测试获取 git diff
+    # Test getting git diff
     diff = get_git_diff()
     
     if diff:
-        print("✅ 成功获取 git diff")
-        print(f"  长度: {len(diff)} 字符")
-        print(f"  内容前100字符: {diff[:100]}...")
+        print("✅ Successfully retrieved git diff")
+        print(f"  Length: {len(diff)} characters")
+        print(f"  First 100 characters: {diff[:100]}...")
     else:
-        print("⚠️ 未获取到 git diff")
-        print("  可能原因:")
-        print("  1. 没有未提交的更改")
-        print("  2. 没有相对于远程分支的更改")
-        print("  3. git 配置问题")
+        print("⚠️ No git diff retrieved")
+        print("  Possible reasons:")
+        print("  1. No uncommitted changes")
+        print("  2. No changes relative to remote branch")
+        print("  3. Git configuration issues")
     
     return bool(diff)
 
 def test_config_filtering():
-    """测试配置过滤功能"""
+    """Test configuration filtering"""
     from config import get_config
     
-    print("\n=== 测试配置过滤功能 ===")
+    print("\n=== Testing Configuration Filtering ===")
     
     config = get_config()
     
-    print(f"配置的文件扩展名: {config.get_file_extensions()}")
-    print(f"配置的扫描目录: {config.get_scan_directories()}")
-    print(f"配置的排除模式: {config.get_exclude_patterns()}")
+    print(f"Configured file extensions: {config.get_file_extensions()}")
+    print(f"Configured scan directories: {config.get_scan_directories()}")
+    print(f"Configured exclude patterns: {config.get_exclude_patterns()}")
     
-    # 测试文件过滤
+    # Test file filtering
     test_files = [
         "app/src/main/java/com/example/Test.kt",
         "app/src/test/java/com/example/Test.kt", 
@@ -76,31 +77,31 @@ def test_config_filtering():
         "app/src/main/java/com/example/Test.java"
     ]
     
-    print("\n文件过滤测试:")
+    print("\nFile filtering tests:")
     for file_path in test_files:
         should_scan = config.should_scan_file(file_path)
-        print(f"  {file_path}: {'✅ 应该扫描' if should_scan else '❌ 不应该扫描'}")
+        print(f"  {file_path}: {'✅ Should scan' if should_scan else '❌ Should not scan'}")
     
     return True
 
 def test_rule_execution():
-    """测试规则执行"""
-    print("\n=== 测试规则执行 ===")
+    """Test rule execution"""
+    print("\n=== Testing Rule Execution ===")
     
-    # 创建临时文件
+    # Create temporary file
     with tempfile.NamedTemporaryFile(mode='w', suffix='.kt', delete=False) as f:
         f.write(TEST_CODE)
         temp_file = f.name
     
     try:
-        # 读取文件内容
+        # Read file content
         with open(temp_file, 'r') as f:
             code = f.read()
         
-        print(f"测试代码长度: {len(code)} 字符")
-        print(f"测试文件: {temp_file}")
+        print(f"Test code length: {len(code)} characters")
+        print(f"Test file: {temp_file}")
         
-        # 测试新规则引擎
+        # Test new rule engine
         try:
             from rule_engine.integration.review_runner import EnhancedReviewRunner
             runner = EnhancedReviewRunner()
@@ -110,23 +111,23 @@ def test_rule_execution():
             findings = result["findings"]
             score = result["score"]
             
-            print(f"\n统一规则引擎发现的问题数: {len(findings)}")
+            print(f"\nUnified rule engine findings: {len(findings)}")
             for i, finding in enumerate(findings, 1):
-                print(f"  问题 {i}: [{finding['severity']}] {finding['rule']} - {finding['message']}")
+                print(f"  Issue {i}: [{finding['severity']}] {finding['rule']} - {finding['message']}")
             
-            print(f"\n总分数: {score}/100")
-            print(f"总问题数: {len(findings)}")
+            print(f"\nTotal score: {score}/100")
+            print(f"Total issues: {len(findings)}")
             
-            # 检查引擎信息
+            # Check engine info
             info = runner.get_engine_info()
-            print(f"规则引擎统计: {info['rule_count']}个规则")
+            print(f"Rule engine stats: {info['rule_count']} rules")
             
             return len(findings) > 0
             
         except ImportError as e:
-            print(f"❌ 导入规则引擎失败: {e}")
-            print("  尝试使用回退机制...")
-            # 回退到旧的规则系统（如果可用）
+            print(f"❌ Failed to import rule engine: {e}")
+            print("  Attempting fallback...")
+            # Fallback to old rule system (if available)
             try:
                 from rules.base_rules import run_base_rules
                 from rules.coroutine_rules import run_coroutine_rules
@@ -137,22 +138,22 @@ def test_rule_execution():
                 all_findings = base_findings + coroutine_findings
                 score = calculate_score(all_findings)
                 
-                print(f"\n回退模式: 发现的问题数: {len(all_findings)}")
-                print(f"总分数: {score}/100")
+                print(f"\nFallback mode: Issues found: {len(all_findings)}")
+                print(f"Total score: {score}/100")
                 
                 return len(all_findings) > 0
             except ImportError as e2:
-                print(f"❌ 回退也失败: {e2}")
+                print(f"❌ Fallback also failed: {e2}")
                 return False
         
     finally:
-        # 清理临时文件
+        # Clean up temporary file
         if os.path.exists(temp_file):
             os.unlink(temp_file)
 
 def test_rule_engine():
-    """测试新规则引擎"""
-    print("\n=== 测试新规则引擎 ===")
+    """Test new rule engine"""
+    print("\n=== Testing New Rule Engine ===")
     
     try:
         from rule_engine import (
@@ -163,50 +164,50 @@ def test_rule_engine():
             viewmodel_context_rule
         )
         
-        # 创建引擎
+        # Create engine
         engine = RuleEngine()
         
-        # 注册规则
+        # Register rules
         registry = engine.registry
         registry.register(NoGlobalScopeRule())
         registry.register(viewmodel_context_rule)
         
-        # 创建上下文
+        # Create context
         context = RuleContext(
             code=TEST_CODE,
             file_path="Test.kt",
             language="kotlin"
         )
         
-        # 执行规则
+        # Execute rules
         findings, stats = engine.execute_all(context, parallel=False)
         
-        print(f"新规则引擎发现的问题数: {len(findings)}")
-        print(f"执行的规则数: {stats.get('total_rules', 0)}")
-        print(f"执行时间: {stats.get('execution_time', 0):.3f} 秒")
+        print(f"New rule engine findings: {len(findings)}")
+        print(f"Rules executed: {stats.get('total_rules', 0)}")
+        print(f"Execution time: {stats.get('execution_time', 0):.3f} seconds")
         
         for i, finding in enumerate(findings, 1):
-            print(f"  问题 {i}: [{finding.severity.value}] {finding.rule_id} - {finding.message}")
+            print(f"  Issue {i}: [{finding.severity.value}] {finding.rule_id} - {finding.message}")
             if finding.suggestion:
-                print(f"      建议: {finding.suggestion}")
+                print(f"      Suggestion: {finding.suggestion}")
         
         return len(findings) > 0
         
     except ImportError as e:
-        print(f"❌ 导入规则引擎失败: {e}")
-        print("  注意: 新规则引擎可能还没有完全集成")
+        print(f"❌ Failed to import rule engine: {e}")
+        print("  Note: New rule engine may not be fully integrated yet")
         return False
     except Exception as e:
-        print(f"❌ 规则引擎测试异常: {e}")
+        print(f"❌ Rule engine test exception: {e}")
         import traceback
         traceback.print_exc()
         return False
 
 def test_review_integration():
-    """测试 review.py 集成"""
-    print("\n=== 测试 review.py 集成 ===")
+    """Test review.py integration"""
+    print("\n=== Testing review.py Integration ===")
     
-    # 创建临时测试目录和文件
+    # Create temporary test directory and file
     temp_dir = tempfile.mkdtemp()
     test_file = os.path.join(temp_dir, "Test.kt")
     
@@ -214,7 +215,7 @@ def test_review_integration():
         f.write(TEST_CODE)
     
     try:
-        # 创建临时代码变更（模拟 git diff）
+        # Create temporary code changes (simulate git diff)
         git_diff_content = f'''diff --git a/{test_file} b/{test_file}
 new file mode 100644
 index 0000000..1234567
@@ -229,52 +230,52 @@ index 0000000..1234567
 +class TestViewModel(val context: android.content.Context) {{
 +    fun doSomething() {{
 +        GlobalScope.launch {{
-+            // 在 GlobalScope 中执行
-+            println("测试")
++            // Execute in GlobalScope
++            println("Test")
 +        }}
 +    }}
 +    
 +    fun doIO() {{
-+        // 在主线程执行 IO 操作
++        // Execute IO operation on main thread
 +        val file = java.io.File("/path/to/file")
 +        file.readText()
 +    }}
 +}}
 +'''
         
-        # 测试配置过滤
+        # Test configuration filtering
         from config import get_config
         config = get_config()
         
         filtered_diff = config.filter_git_diff(git_diff_content)
         
-        print(f"原始 git diff 长度: {len(git_diff_content)}")
-        print(f"过滤后 git diff 长度: {len(filtered_diff)}")
+        print(f"Original git diff length: {len(git_diff_content)}")
+        print(f"Filtered git diff length: {len(filtered_diff)}")
         
         if filtered_diff:
-            print("✅ 配置过滤功能正常")
+            print("✅ Configuration filtering working")
             return True
         else:
-            print("❌ 配置过滤后没有内容")
-            print("  可能原因: 测试文件路径不在配置的扫描目录中")
+            print("❌ No content after filtering")
+            print("  Possible reason: Test file path not in configured scan directories")
             return False
             
     finally:
-        # 清理临时目录
+        # Clean up temporary directory
         import shutil
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
 
 def main():
-    """主测试函数"""
-    print("📋 review skill 功能测试\n")
+    """Main test function"""
+    print("📋 Review Skill Functionality Test\n")
     
     tests = [
-        ("git diff 获取逻辑", test_git_diff_logic),
-        ("配置过滤功能", test_config_filtering),
-        ("规则执行", test_rule_execution),
-        ("新规则引擎", test_rule_engine),
-        ("review.py 集成", test_review_integration)
+        ("Git diff retrieval logic", test_git_diff_logic),
+        ("Configuration filtering", test_config_filtering),
+        ("Rule execution", test_rule_execution),
+        ("New rule engine", test_rule_engine),
+        ("review.py integration", test_review_integration)
     ]
     
     passed = 0
@@ -284,27 +285,27 @@ def main():
         try:
             print(f"\n{'='*60}")
             if test_func():
-                print(f"✅ {test_name}测试通过")
+                print(f"✅ {test_name} test passed")
                 passed += 1
             else:
-                print(f"❌ {test_name}测试失败")
+                print(f"❌ {test_name} test failed")
                 failed += 1
         except Exception as e:
-            print(f"❌ {test_name}测试异常: {e}")
+            print(f"❌ {test_name} test exception: {e}")
             import traceback
             traceback.print_exc()
             failed += 1
     
     print(f"\n{'='*60}")
-    print(f"测试总结: {passed} 通过, {failed} 失败")
+    print(f"Test summary: {passed} passed, {failed} failed")
     
-    # 提供建议
+    # Provide suggestions
     if failed > 0:
-        print("\n💡 建议:")
-        print("1. 检查 review skill 配置文件 (review_config.json)")
-        print("2. 确保有代码变更可供审查")
-        print("3. 查看具体失败的测试以了解问题原因")
-        print("4. 运行 python3 review.py 查看原始输出")
+        print("\n💡 Suggestions:")
+        print("1. Check review skill configuration file (review_config.json)")
+        print("2. Ensure there are code changes available for review")
+        print("3. Check specific failed tests to understand the issue")
+        print("4. Run python3 review.py to see raw output")
     
     return 0 if failed == 0 else 1
 
