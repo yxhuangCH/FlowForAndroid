@@ -1,3 +1,2 @@
-"""
-规则引擎测试包
+"""Rule EngineTests package
 """

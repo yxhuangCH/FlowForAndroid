@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-快速规则迁移脚本 - 直接迁移关键规则模块到新引擎格式
+Rule Migration - Rule
 """
 import os
 import sys
@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 from typing import List, Dict, Any
 
-# 添加路径以便导入模块
+# Add
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from rule_engine.interfaces import RuleSeverity, RuleCategory, Rule, RuleMetadata, Finding
@@ -17,23 +17,23 @@ from rule_engine.adapters.decorators import rule
 
 
 def migrate_coroutine_rules():
-    """迁移协程相关规则"""
-    print("迁移协程规则...")
+    """MigrationRule"""
+    print("Rule...")
     
-    # 主线程IO规则
+    # IORule
     @rule(
         rule_id="main_thread_io",
-        name="主线程IO操作",
-        description="在主线程执行IO操作可能导致ANR（应用无响应）",
+        name="IO",
+        description="IOANR（）",
         severity=RuleSeverity.CRITICAL,
         category=RuleCategory.PERFORMANCE,
         tags=["android", "kotlin", "coroutine", "io", "anr"],
-        suggested_fix="将IO操作移到Dispatchers.IO或后台线程"
+        suggested_fix="IODispatchers.IO"
     )
     def main_thread_io_rule(context: RuleContext) -> List[Finding]:
         findings = []
         
-        # 简化检测：如果包含Dispatchers.Main并且有IO相关操作
+        # Simplified detection：Dispatchers.MainIO
         has_main_dispatcher = any(
             "Dispatchers.Main" in line or "Dispatchers.Main" in line.upper()
             for line in context.get_lines()
@@ -48,23 +48,23 @@ def migrate_coroutine_rules():
         if has_main_dispatcher and has_io_operation:
             findings.append(Finding(
                 rule_id="main_thread_io",
-                message="检测到在主线程执行IO操作的风险",
+                message="IO",
                 severity=RuleSeverity.CRITICAL,
                 file_path=context.file_path,
-                suggestion="将IO操作移到Dispatchers.IO或后台线程"
+                suggestion="IODispatchers.IO"
             ))
         
         return findings
     
-    # 未指定作用域规则
+    # Rule
     @rule(
         rule_id="unspecified_scope",
-        name="未指定协程作用域",
-        description="协程启动未指定生命周期作用域",
+        name="",
+        description="",
         severity=RuleSeverity.MINOR,
         category=RuleCategory.LIFECYCLE,
         tags=["android", "kotlin", "coroutine", "lifecycle"],
-        suggested_fix="明确指定协程作用域，如viewModelScope或lifecycleScope"
+        suggested_fix="，viewModelScopelifecycleScope"
     )
     def unspecified_scope_rule(context: RuleContext) -> List[Finding]:
         findings = []
@@ -74,12 +74,12 @@ def migrate_coroutine_rules():
             if "launch {" in line and "viewModelScope" not in line and "lifecycleScope" not in line:
                 findings.append(Finding(
                     rule_id="unspecified_scope",
-                    message="协程启动未指定生命周期作用域",
+                    message="",
                     severity=RuleSeverity.MINOR,
                     file_path=context.file_path,
                     line_number=i,
                     code_snippet=line,
-                    suggestion="明确指定协程作用域，如viewModelScope或lifecycleScope"
+                    suggestion="，viewModelScopelifecycleScope"
                 ))
         
         return findings
@@ -88,18 +88,18 @@ def migrate_coroutine_rules():
 
 
 def migrate_compose_rules():
-    """迁移Compose相关规则"""
-    print("迁移Compose规则...")
+    """MigrationComposeRule"""
+    print("ComposeRule...")
     
-    # LaunchedEffect(Unit)规则
+    # LaunchedEffect(Unit)Rule
     @rule(
         rule_id="launched_effect_unit",
-        name="LaunchedEffect(Unit)问题",
-        description="LaunchedEffect(Unit)可能导致不必要的重新组合",
+        name="LaunchedEffect(Unit)",
+        description="LaunchedEffect(Unit)",
         severity=RuleSeverity.MINOR,
         category=RuleCategory.CORRECTNESS,
         tags=["android", "compose", "kotlin"],
-        suggested_fix="使用合适的key参数替代Unit，避免不必要的重新组合"
+        suggested_fix="keyUnit，"
     )
     def launched_effect_unit_rule(context: RuleContext) -> List[Finding]:
         findings = []
@@ -109,25 +109,25 @@ def migrate_compose_rules():
             if "LaunchedEffect(Unit)" in line:
                 findings.append(Finding(
                     rule_id="launched_effect_unit",
-                    message="LaunchedEffect(Unit)可能导致不必要的重新组合",
+                    message="LaunchedEffect(Unit)",
                     severity=RuleSeverity.MINOR,
                     file_path=context.file_path,
                     line_number=i,
                     code_snippet=line,
-                    suggestion="使用合适的key参数替代Unit，避免不必要的重新组合"
+                    suggestion="keyUnit，"
                 ))
         
         return findings
     
-    # remember持有Context规则
+    # rememberContextRule
     @rule(
         rule_id="remember_context",
-        name="remember持有Context",
-        description="remember中持有Context可能导致内存泄漏",
+        name="rememberContext",
+        description="rememberContext",
         severity=RuleSeverity.MAJOR,
         category=RuleCategory.LIFECYCLE,
         tags=["android", "compose", "kotlin", "context"],
-        suggested_fix="避免在remember中持有Context，考虑使用ViewModel或其他方式"
+        suggested_fix="rememberContext，ViewModel"
     )
     def remember_context_rule(context: RuleContext) -> List[Finding]:
         findings = []
@@ -137,12 +137,12 @@ def migrate_compose_rules():
             if "remember {" in line and "context" in line.lower():
                 findings.append(Finding(
                     rule_id="remember_context",
-                    message="remember中持有Context可能导致内存泄漏",
+                    message="rememberContext",
                     severity=RuleSeverity.MAJOR,
                     file_path=context.file_path,
                     line_number=i,
                     code_snippet=line,
-                    suggestion="避免在remember中持有Context，考虑使用ViewModel或其他方式"
+                    suggestion="rememberContext，ViewModel"
                 ))
         
         return findings
@@ -151,18 +151,18 @@ def migrate_compose_rules():
 
 
 def migrate_flow_rules():
-    """迁移Flow相关规则"""
-    print("迁移Flow规则...")
+    """MigrationFlowRule"""
+    print("FlowRule...")
     
-    # flowOn主线程规则
+    # flowOnRule
     @rule(
         rule_id="flowon_main_dispatcher",
-        name="flowOn主线程问题",
-        description="flowOn(Dispatchers.Main)可能在上游执行主线程操作",
+        name="flowOn",
+        description="flowOn(Dispatchers.Main)",
         severity=RuleSeverity.CRITICAL,
         category=RuleCategory.CONCURRENCY,
         tags=["kotlin", "coroutine", "flow"],
-        suggested_fix="使用Dispatchers.Default或Dispatchers.IO处理上游操作"
+        suggested_fix="Dispatchers.DefaultDispatchers.IOProcess"
     )
     def flowon_main_dispatcher_rule(context: RuleContext) -> List[Finding]:
         findings = []
@@ -172,23 +172,23 @@ def migrate_flow_rules():
         if re.search(pattern, code):
             findings.append(Finding(
                 rule_id="flowon_main_dispatcher",
-                message="flowOn(Dispatchers.Main)可能在上游执行主线程操作",
+                message="flowOn(Dispatchers.Main)",
                 severity=RuleSeverity.CRITICAL,
                 file_path=context.file_path,
-                suggestion="使用Dispatchers.Default或Dispatchers.IO处理上游操作"
+                suggestion="Dispatchers.DefaultDispatchers.IOProcess"
             ))
         
         return findings
     
-    # MutableStateFlow暴露规则
+    # MutableStateFlowRule
     @rule(
         rule_id="mutable_stateflow_exposed",
-        name="MutableStateFlow暴露",
-        description="MutableStateFlow不应公开暴露",
+        name="MutableStateFlow",
+        description="MutableStateFlow",
         severity=RuleSeverity.MAJOR,
         category=RuleCategory.CORRECTNESS,
         tags=["kotlin", "flow", "stateflow"],
-        suggested_fix="将MutableStateFlow设为私有，通过StateFlow公开只读版本"
+        suggested_fix="MutableStateFlow，StateFlow"
     )
     def mutable_stateflow_exposed_rule(context: RuleContext) -> List[Finding]:
         findings = []
@@ -201,10 +201,10 @@ def migrate_flow_rules():
             if "private" not in match:
                 findings.append(Finding(
                     rule_id="mutable_stateflow_exposed",
-                    message="MutableStateFlow不应公开暴露",
+                    message="MutableStateFlow",
                     severity=RuleSeverity.MAJOR,
                     file_path=context.file_path,
-                    suggestion="将MutableStateFlow设为私有，通过StateFlow公开只读版本"
+                    suggestion="MutableStateFlow，StateFlow"
                 ))
         
         return findings
@@ -213,17 +213,17 @@ def migrate_flow_rules():
 
 
 def migrate_hilt_rules():
-    """迁移Hilt相关规则"""
-    print("迁移Hilt规则...")
+    """MigrationHiltRule"""
+    print("HiltRule...")
     
     @rule(
         rule_id="singleton_activity",
-        name="Singleton Activity注入",
-        description="@Singleton不应注入Activity",
+        name="Singleton Activity",
+        description="@SingletonActivity",
         severity=RuleSeverity.MAJOR,
         category=RuleCategory.CORRECTNESS,
         tags=["android", "hilt", "dagger", "dependency-injection"],
-        suggested_fix="使用@ActivityScoped替代@Singleton注入Activity"
+        suggested_fix="@ActivityScoped@SingletonActivity"
     )
     def singleton_activity_rule(context: RuleContext) -> List[Finding]:
         findings = []
@@ -238,12 +238,12 @@ def migrate_hilt_rules():
             if in_singleton_block and "Activity" in line:
                 findings.append(Finding(
                     rule_id="singleton_activity",
-                    message="@Singleton不应注入Activity",
+                    message="@SingletonActivity",
                     severity=RuleSeverity.MAJOR,
                     file_path=context.file_path,
                     line_number=i,
                     code_snippet=line,
-                    suggestion="使用@ActivityScoped替代@Singleton注入Activity"
+                    suggestion="@ActivityScoped@SingletonActivity"
                 ))
                 in_singleton_block = False
         
@@ -254,15 +254,15 @@ def migrate_hilt_rules():
 
 def generate_rule_module(module_name: str, rules: List[Any], output_dir: Path = None) -> str:
     """
-    生成规则模块文件
+    GenerateRule
     
     Args:
-        module_name: 模块名
-        rules: 规则列表
-        output_dir: 输出目录
+        module_name: 
+        rules: Rule
+        output_dir: 
         
     Returns:
-        生成的文件路径
+        Generate
     """
     if output_dir is None:
         output_dir = Path(__file__).parent / "rules" / "migrated"
@@ -270,10 +270,10 @@ def generate_rule_module(module_name: str, rules: List[Any], output_dir: Path = 
     output_dir.mkdir(parents=True, exist_ok=True)
     output_file = output_dir / f"{module_name}.py"
     
-    # 生成模块头部
+    # Generate
     template = '''"""
-{module_name} - 迁移规则模块
-从旧规则系统迁移到新规则引擎
+{module_name} - Rule
+RuleRule Engine
 """
 from typing import List
 from rule_engine.interfaces import Rule, RuleMetadata, RuleSeverity, RuleCategory, Finding
@@ -284,52 +284,52 @@ from rule_engine.adapters.decorators import rule
     
     content = template.format(module_name=module_name.replace("_", " ").title())
     
-    # 收集规则代码
+    # Rule
     for rule_func in rules:
-        # 获取源代码
+        # Get
         import inspect
         source = inspect.getsource(rule_func)
         content += source + "\n\n"
     
-    # 添加__all__导出
+    # Add__all__
     rule_names = [rule_func.__name__ for rule_func in rules]
     content += f"__all__ = {rule_names!r}\n"
     
-    # 写入文件
+    # 
     output_file.write_text(content, encoding='utf-8')
-    print(f"生成规则模块: {output_file}")
+    print(f"GenerateRule: {output_file}")
     
     return str(output_file)
 
 
 def main():
-    """主函数"""
-    print("=== 快速规则迁移 ===")
+    """Main function"""
+    print("=== Rule Migration ===")
     print()
     
-    # 迁移各模块规则
+    # Rule
     all_rules = []
     
-    # 协程规则
+    # Rule
     coroutine_rules = migrate_coroutine_rules()
     all_rules.extend(coroutine_rules)
     
-    # Compose规则
+    # ComposeRule
     compose_rules = migrate_compose_rules()
     all_rules.extend(compose_rules)
     
-    # Flow规则
+    # FlowRule
     flow_rules = migrate_flow_rules()
     all_rules.extend(flow_rules)
     
-    # Hilt规则
+    # HiltRule
     hilt_rules = migrate_hilt_rules()
     all_rules.extend(hilt_rules)
     
-    print(f"总计迁移 {len(all_rules)} 个规则")
+    print(f" {len(all_rules)} Rule")
     print()
     
-    # 生成模块文件
+    # Generate
     modules = {
         "coroutine_rules": coroutine_rules,
         "compose_rules": compose_rules,
@@ -344,16 +344,16 @@ def main():
             generated_files.append(file_path)
     
     print()
-    print("=== 迁移完成 ===")
+    print("===  ===")
     print()
-    print("生成的文件:")
+    print("Generate:")
     for file_path in generated_files:
         print(f"  - {file_path}")
     print()
-    print("下一步操作:")
-    print("1. 导入新规则到review_runner.py")
-    print("2. 更新规则注册逻辑")
-    print("3. 测试迁移后的系统")
+    print(":")
+    print("1. Rulereview_runner.py")
+    print("2. UpdateRuleRegister")
+    print("3. Test")
 
 
 if __name__ == "__main__":

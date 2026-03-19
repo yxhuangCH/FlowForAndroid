@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-单元测试 for rules/hilt_rules.py
+Unit tests for rules/hilt_rules.py
 """
 
 import unittest
@@ -8,15 +8,15 @@ from rules.hilt_rules import run_hilt_rules
 
 
 class TestHiltRules(unittest.TestCase):
-    """测试 hilt_rules 模块"""
+    """Tests"""
     
     def test_run_hilt_rules_empty_code(self):
-        """测试空代码"""
+        """Tests"""
         findings = run_hilt_rules("")
         self.assertEqual(findings, [])
     
     def test_run_hilt_rules_singleton_activity(self):
-        """测试 Singleton 注入 Activity 检测"""
+        """Tests"""
         code = """@Singleton
         class MyRepository @Inject constructor() {
             // repository code
@@ -33,7 +33,7 @@ class TestHiltRules(unittest.TestCase):
         self.assertEqual(findings[0]["message"], "Singleton injected into Activity scope.")
     
     def test_run_hilt_rules_singleton_without_activity(self):
-        """测试有 Singleton 但没有 Activity（不应检测）"""
+        """Tests"""
         code = """@Singleton
         class MyRepository @Inject constructor() {
             // repository code
@@ -42,7 +42,7 @@ class TestHiltRules(unittest.TestCase):
         self.assertEqual(findings, [])
     
     def test_run_hilt_rules_activity_without_singleton(self):
-        """测试有 Activity 但没有 Singleton（不应检测）"""
+        """Tests"""
         code = """class MainActivity : AppCompatActivity() {
             // activity code
         }"""
@@ -50,7 +50,7 @@ class TestHiltRules(unittest.TestCase):
         self.assertEqual(findings, [])
     
     def test_run_hilt_rules_singleton_activity_separate(self):
-        """测试 Singleton 和 Activity 分开"""
+        """Tests"""
         code = """@Singleton
         class MySingleton {
             // singleton code
@@ -60,12 +60,12 @@ class TestHiltRules(unittest.TestCase):
             // activity code
         }"""
         findings = run_hilt_rules(code)
-        # 应该检测到，因为 @Singleton 和 Activity 都在代码中
+        # ， @Singleton  Activity 
         self.assertEqual(len(findings), 1)
         self.assertEqual(findings[0]["rule"], "singleton_activity")
     
     def test_run_hilt_rules_multiple_activities(self):
-        """测试多个 Activity"""
+        """Tests"""
         code = """@Singleton
         class MySingleton {
             // singleton code
@@ -83,7 +83,7 @@ class TestHiltRules(unittest.TestCase):
         self.assertEqual(findings[0]["rule"], "singleton_activity")
     
     def test_run_hilt_rules_case_sensitive(self):
-        """测试大小写敏感"""
+        """Tests"""
         code = """@singleton
         class MyClass {
             // lowercase singleton
@@ -93,7 +93,7 @@ class TestHiltRules(unittest.TestCase):
             // activity
         }"""
         findings = run_hilt_rules(code)
-        # 大小写敏感，@singleton 不会匹配 @Singleton
+        # ，@singleton  @Singleton
         self.assertEqual(findings, [])
 
 

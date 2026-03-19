@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-规则迁移脚本 - 自动将旧规则迁移到新引擎格式
+Rule Migration - Rule Migration
 """
 import os
 import sys
@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, List, Any, Tuple
 import logging
 
-# 添加路径以便导入模块
+# Add
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from rule_engine.interfaces import RuleSeverity, RuleCategory
@@ -23,24 +23,24 @@ logger = logging.getLogger(__name__)
 
 def analyze_old_rules() -> Dict[str, Dict[str, Any]]:
     """
-    分析旧规则模块，提取规则信息
+    Rule，Rule
     
     Returns:
-        规则信息字典 {模块名: {规则信息}}
+        Rule {: {Rule}}
     """
-    # 尝试基于脚本位置计算路径
+    # Calculate
     try:
         rules_dir = Path(__file__).parent.parent / "rules"
     except NameError:
-        # 如果__file__不存在，使用当前工作目录
+        # __file__，
         rules_dir = Path.cwd() / "rules"
     
     if not rules_dir.exists():
-        # 尝试相对路径
+        # 
         rules_dir = Path.cwd() / "rules"
         if not rules_dir.exists():
-            logger.error(f"旧规则目录不存在，尝试的路径: {rules_dir}")
-            logger.error(f"当前工作目录: {Path.cwd()}")
+            logger.error(f"Rule，: {rules_dir}")
+            logger.error(f": {Path.cwd()}")
             return {}
     
     rule_info = {}
@@ -50,21 +50,21 @@ def analyze_old_rules() -> Dict[str, Dict[str, Any]]:
         full_module_name = f"rules.{module_name}"
         
         try:
-            # 使用importlib动态导入模块
+            # importlib
             import importlib
             module = importlib.import_module(full_module_name)
             
-            # 查找所有以run_开头的函数
+            # run_
             functions = inspect.getmembers(module, inspect.isfunction)
             run_functions = [(name, func) for name, func in functions if name.startswith('run_')]
             
             if not run_functions:
                 continue
             
-            # 读取文件内容分析
+            # 
             content = py_file.read_text(encoding='utf-8')
             
-            # 提取规则相关信息
+            # Rule
             rule_info[module_name] = {
                 "module": module,
                 "module_path": str(py_file),
@@ -73,36 +73,36 @@ def analyze_old_rules() -> Dict[str, Dict[str, Any]]:
                 "rules": extract_rules_from_code(content, module_name)
             }
             
-            logger.info(f"分析模块 {module_name}: 找到 {len(run_functions)} 个规则函数")
+            logger.info(f" {module_name}:  {len(run_functions)} Rule")
             
         except ImportError as e:
-            logger.error(f"导入模块 {full_module_name} 失败: {e}")
+            logger.error(f" {full_module_name} : {e}")
         except Exception as e:
-            logger.error(f"分析模块 {module_name} 失败: {e}")
+            logger.error(f" {module_name} : {e}")
     
     return rule_info
 
 
 def extract_rules_from_code(content: str, module_name: str) -> List[Dict[str, Any]]:
     """
-    从代码中提取规则信息
+    Rule
     
     Args:
-        content: 代码内容
-        module_name: 模块名
+        content: code content
+        module_name: 
         
     Returns:
-        规则信息列表
+        Rule
     """
     rules = []
     
-    # 查找所有findings.append语句
+    # findings.append
     pattern = r'findings\.append\(\s*{([^}]+)}\s*\)'
     
     for match in re.finditer(pattern, content, re.DOTALL):
         finding_text = match.group(1)
         
-        # 提取规则信息
+        # Rule
         rule_match = re.search(r'"rule"\s*:\s*"([^"]+)"', finding_text)
         severity_match = re.search(r'"severity"\s*:\s*"([^"]+)"', finding_text)
         message_match = re.search(r'"message"\s*:\s*"([^"]+)"', finding_text)
@@ -112,7 +112,7 @@ def extract_rules_from_code(content: str, module_name: str) -> List[Dict[str, An
             severity = severity_match.group(1)
             message = message_match.group(1)
             
-            # 根据规则ID推断元数据
+            # RuleID
             metadata = infer_rule_metadata(rule_id, severity, message, module_name)
             
             rules.append({
@@ -127,18 +127,18 @@ def extract_rules_from_code(content: str, module_name: str) -> List[Dict[str, An
 
 def infer_rule_metadata(rule_id: str, severity: str, message: str, module_name: str) -> Dict[str, Any]:
     """
-    推断规则元数据
+    Rule Metadata
     
     Args:
-        rule_id: 规则ID
-        severity: 严重级别
-        message: 消息
-        module_name: 模块名
+        rule_id: RuleID
+        severity: 
+        message: 
+        module_name: 
         
     Returns:
-        元数据字典
+        
     """
-    # 根据模块名推断分类
+    # 
     category_map = {
         "base_rules": RuleCategory.CORRECTNESS,
         "coroutine_rules": RuleCategory.CONCURRENCY,
@@ -152,21 +152,21 @@ def infer_rule_metadata(rule_id: str, severity: str, message: str, module_name: 
     
     category = category_map.get(module_name, RuleCategory.CORRECTNESS)
     
-    # 根据规则ID推断名称和标签
+    # RuleID
     name_map = {
-        "no_globalscope": "禁止使用GlobalScope",
-        "viewmodel_context": "ViewModel不应持有Context",
-        "main_thread_io": "主线程IO操作",
-        "unspecified_scope": "未指定协程作用域",
-        "launched_effect_unit": "LaunchedEffect(Unit)问题",
-        "remember_context": "remember持有Context",
-        "flowon_main_dispatcher": "flowOn主线程问题",
-        # 添加更多映射...
+        "no_globalscope": "GlobalScope",
+        "viewmodel_context": "ViewModelContext",
+        "main_thread_io": "IO",
+        "unspecified_scope": "",
+        "launched_effect_unit": "LaunchedEffect(Unit)",
+        "remember_context": "rememberContext",
+        "flowon_main_dispatcher": "flowOn",
+        # Add...
     }
     
     name = name_map.get(rule_id, rule_id.replace("_", " ").title())
     
-    # 推断标签
+    # 
     tags = [module_name.replace("_rules", "")]
     
     if "coroutine" in rule_id or "scope" in rule_id:
@@ -189,75 +189,75 @@ def infer_rule_metadata(rule_id: str, severity: str, message: str, module_name: 
 
 def generate_suggested_fix(rule_id: str) -> str:
     """
-    生成建议修复
+    Generate
     
     Args:
-        rule_id: 规则ID
+        rule_id: RuleID
         
     Returns:
-        建议修复文本
+        
     """
     fixes = {
-        "no_globalscope": "使用viewModelScope、lifecycleScope或自定义CoroutineScope替代GlobalScope",
-        "viewmodel_context": "使用Application Context或通过AndroidViewModel获取Context",
-        "main_thread_io": "将IO操作移到Dispatchers.IO或后台线程",
-        "unspecified_scope": "明确指定协程作用域，如viewModelScope或lifecycleScope",
-        "launched_effect_unit": "使用合适的key参数替代Unit，避免不必要的重新组合",
-        "remember_context": "避免在remember中持有Context，考虑使用ViewModel或其他方式",
-        "flowon_main_dispatcher": "使用Dispatchers.Default或Dispatchers.IO处理上游操作",
+        "no_globalscope": "viewModelScope、lifecycleScopeCoroutineScopeGlobalScope",
+        "viewmodel_context": "Application ContextAndroidViewModelGetContext",
+        "main_thread_io": "IODispatchers.IO",
+        "unspecified_scope": "，viewModelScopelifecycleScope",
+        "launched_effect_unit": "keyUnit，",
+        "remember_context": "rememberContext，ViewModel",
+        "flowon_main_dispatcher": "Dispatchers.DefaultDispatchers.IOProcess",
     }
     
-    return fixes.get(rule_id, "请根据具体情况修复代码问题")
+    return fixes.get(rule_id, "")
 
 
 def create_legacy_adapters(rules_info: Dict[str, Dict[str, Any]]) -> List[Any]:
     """
-    为旧规则创建适配器（已禁用，legacy_adapter 已移除）
+    Rule（Disable，legacy_adapter Remove）
 
     Args:
-        rules_info: 规则信息
+        rules_info: Rule
         
     Returns:
-        空列表
+        
     """
-    logger.warning("legacy_adapter 已移除，适配器功能已禁用")
+    logger.warning("legacy_adapter Remove，Disable")
     return []
 
 
 def generate_migration_report(rules_info: Dict[str, Dict[str, Any]]) -> str:
     """
-    生成迁移报告
+    Generate
     
     Args:
-        rules_info: 规则信息
+        rules_info: Rule
         
     Returns:
-        报告文本
+        
     """
     report_lines = []
     
     total_rules = 0
     for module_name, module_info in rules_info.items():
         rules = module_info["rules"]
-        report_lines.append(f"## 模块: {module_name}")
-        report_lines.append(f"文件: {module_info['module_path']}")
-        report_lines.append(f"规则数量: {len(rules)}")
+        report_lines.append(f"## : {module_name}")
+        report_lines.append(f": {module_info['module_path']}")
+        report_lines.append(f"Rule: {len(rules)}")
         report_lines.append("")
         
         for rule in rules:
             total_rules += 1
             metadata = rule["metadata"]
-            report_lines.append(f"### 规则: {rule['rule_id']}")
-            report_lines.append(f"- 严重级别: {rule['severity']}")
-            report_lines.append(f"- 消息: {rule['message']}")
-            report_lines.append(f"- 名称: {metadata['name']}")
-            report_lines.append(f"- 分类: {metadata['category'].value}")
-            report_lines.append(f"- 标签: {', '.join(metadata['tags'])}")
-            report_lines.append(f"- 建议修复: {metadata['suggested_fix']}")
+            report_lines.append(f"### Rule: {rule['rule_id']}")
+            report_lines.append(f"- : {rule['severity']}")
+            report_lines.append(f"- : {rule['message']}")
+            report_lines.append(f"- : {metadata['name']}")
+            report_lines.append(f"- : {metadata['category'].value}")
+            report_lines.append(f"- : {', '.join(metadata['tags'])}")
+            report_lines.append(f"- : {metadata['suggested_fix']}")
             report_lines.append("")
     
-    report_lines.insert(0, f"# 规则迁移报告")
-    report_lines.insert(1, f"总计规则数量: {total_rules}")
+    report_lines.insert(0, f"# Rule Migration")
+    report_lines.insert(1, f"Rule: {total_rules}")
     report_lines.insert(2, "")
     
     return "\n".join(report_lines)
@@ -265,14 +265,14 @@ def generate_migration_report(rules_info: Dict[str, Dict[str, Any]]) -> str:
 
 def migrate_rule_files(rules_info: Dict[str, Dict[str, Any]], output_dir: Path = None) -> Dict[str, str]:
     """
-    迁移规则文件到新格式
+    Rule
     
     Args:
-        rules_info: 规则信息
-        output_dir: 输出目录
+        rules_info: Rule
+        output_dir: 
         
     Returns:
-        生成的文件路径字典
+        Generate
     """
     if output_dir is None:
         output_dir = Path(__file__).parent.parent / "rules" / "migrated"
@@ -281,9 +281,9 @@ def migrate_rule_files(rules_info: Dict[str, Dict[str, Any]], output_dir: Path =
     
     generated_files = {}
     
-    # 模板文件头部
+    # 
     template_header = '''"""
-迁移规则 - 从旧格式转换为新格式
+Rule - Convert
 """
 from typing import List
 from ..interfaces import Rule, RuleMetadata, RuleSeverity, RuleCategory, Finding
@@ -295,7 +295,7 @@ from ..adapters.decorators import rule
     for module_name, module_info in rules_info.items():
         output_file = output_dir / f"{module_name}_migrated.py"
         
-        # 生成新规则代码
+        # GenerateRule
         code_lines = [template_header]
         
         for rule in module_info["rules"]:
@@ -303,37 +303,37 @@ from ..adapters.decorators import rule
             metadata = rule["metadata"]
             severity_str = rule["severity"]
             
-            # 生成规则类或装饰器
+            # GenerateRule
             if len(module_info["rules"]) == 1:
-                # 单个规则，生成类
+                # Rule，Generate
                 class_code = generate_rule_class(rule_id, metadata, severity_str)
                 code_lines.append(class_code)
             else:
-                # 多个规则，生成装饰器函数
+                # Rule，Generate
                 func_code = generate_rule_function(rule_id, metadata, severity_str)
                 code_lines.append(func_code)
             
             code_lines.append("\n\n")
         
-        # 写入文件
+        # 
         output_file.write_text("".join(code_lines), encoding='utf-8')
         generated_files[module_name] = str(output_file)
-        logger.info(f"生成新规则文件: {output_file}")
+        logger.info(f"GenerateRule: {output_file}")
     
     return generated_files
 
 
 def generate_rule_class(rule_id: str, metadata: Dict[str, Any], severity_str: str) -> str:
     """
-    生成规则类代码
+    GenerateRule
     
     Args:
-        rule_id: 规则ID
-        metadata: 元数据
-        severity_str: 严重级别字符串
+        rule_id: RuleID
+        metadata: 
+        severity_str: 
         
     Returns:
-        类代码
+        
     """
     try:
         severity = RuleSeverity(severity_str)
@@ -361,8 +361,8 @@ def generate_rule_class(rule_id: str, metadata: Dict[str, Any], severity_str: st
     def check(self, context: RuleContext) -> List[Finding]:
         findings = []
         
-        # TODO: 实现规则检测逻辑
-        # 基于旧规则逻辑实现
+        # TODO: Rule
+        # Rule
         
         return findings'''
     
@@ -371,15 +371,15 @@ def generate_rule_class(rule_id: str, metadata: Dict[str, Any], severity_str: st
 
 def generate_rule_function(rule_id: str, metadata: Dict[str, Any], severity_str: str) -> str:
     """
-    生成规则函数代码
+    GenerateRule
     
     Args:
-        rule_id: 规则ID
-        metadata: 元数据
-        severity_str: 严重级别字符串
+        rule_id: RuleID
+        metadata: 
+        severity_str: 
         
     Returns:
-        函数代码
+        
     """
     try:
         severity = RuleSeverity(severity_str)
@@ -400,8 +400,8 @@ def {rule_id}_rule(context: RuleContext) -> List[Finding]:
     """{metadata['name']}"""
     findings = []
     
-    # TODO: 实现规则检测逻辑
-    # 基于旧规则逻辑实现
+    # TODO: Rule
+    # Rule
     
     return findings'''
     
@@ -409,54 +409,54 @@ def {rule_id}_rule(context: RuleContext) -> List[Finding]:
 
 
 def main():
-    """主函数"""
-    print("=== 规则迁移工具 ===")
+    """Main function"""
+    print("=== Rule Migration ===")
     print()
     
-    # 分析旧规则
-    print("1. 分析旧规则模块...")
+    # Rule
+    print("1. Rule...")
     rules_info = analyze_old_rules()
     
     if not rules_info:
-        print("未找到旧规则模块")
+        print("Rule")
         return
     
-    print(f"分析完成，找到 {len(rules_info)} 个模块")
+    print(f"， {len(rules_info)} ")
     print()
     
-    # 生成报告
-    print("2. 生成迁移报告...")
+    # Generate
+    print("2. Generate...")
     report = generate_migration_report(rules_info)
     
     report_file = Path(__file__).parent / "migration_report.md"
     report_file.write_text(report, encoding='utf-8')
-    print(f"报告已保存到: {report_file}")
+    print(f"Save: {report_file}")
     print()
     
-    # 创建适配器
-    print("3. 创建适配器...")
+    # 
+    print("3. ...")
     adapters = create_legacy_adapters(rules_info)
-    print(f"创建了 {len(adapters)} 个适配器")
+    print(f" {len(adapters)} ")
     print()
     
-    # 生成新规则文件
-    print("4. 生成新规则文件...")
+    # GenerateRule
+    print("4. GenerateRule...")
     output_dir = Path(__file__).parent.parent / "rules" / "migrated"
     generated_files = migrate_rule_files(rules_info, output_dir)
     
-    print(f"生成 {len(generated_files)} 个新规则文件到: {output_dir}")
+    print(f"Generate {len(generated_files)} Rule: {output_dir}")
     print()
     
-    # 提供下一步指导
-    print("=== 迁移完成 ===")
+    # 
+    print("===  ===")
     print()
-    print("下一步操作:")
-    print("1. 检查生成的适配器是否正确")
-    print("2. 实现新规则文件中的TODO逻辑")
-    print("3. 更新review_runner.py中的规则注册逻辑")
-    print("4. 运行测试验证迁移效果")
+    print(":")
+    print("1. CheckGenerate")
+    print("2. RuleTODO")
+    print("3. Updatereview_runner.pyRuleRegister")
+    print("4. Test")
     print()
-    print(f"详细报告: {report_file}")
+    print(f": {report_file}")
     
     return adapters
 

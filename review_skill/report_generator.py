@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-HTML报告生成器
-为代码审查结果生成可视化HTML报告
+HTML Report Generator
+Generates visual HTML reports for code review results
 """
 
 import os
@@ -13,22 +13,22 @@ from datetime import datetime
 
 
 class GitDiffParser:
-    """解析git diff输出"""
+    """Parses git diff output"""
     
     @staticmethod
     def parse(diff_text: str) -> List[Dict[str, Any]]:
         """
-        解析git diff输出，返回文件变更列表
+        Parses git diff output, returns list of file changes
         
-        格式示例：
+        Format Example:
         diff --git a/file1 b/file1
         index xxx..xxx
         --- a/file1
         +++ b/file1
         @@ -l,s +l,s @@
-        - 删除的行
-        + 新增的行
-         不变的行
+        - Deleted lines
+        + Added lines
+         Unchanged lines
         """
         if not diff_text.strip():
             return []
@@ -41,13 +41,13 @@ class GitDiffParser:
         while i < len(lines):
             line = lines[i]
             
-            # 检测新文件开始
+            # Detect new file start
             if line.startswith('diff --git'):
                 if current_file:
                     files.append(current_file)
                 
-                # 提取文件名
-                match = re.search(r'^diff --git a/(.+) b/(.+)$', line)
+                # Extract filename
+                match = re.search(r'^diff --git a/(.+) b(.+)$', line)
                 if match:
                     old_file = match.group(1)
                     new_file = match.group(2)
@@ -61,9 +61,9 @@ class GitDiffParser:
                     }
                 i += 1
                 
-            # 检测hunk开始
+            # Detect hunk start
             elif line.startswith('@@') and current_file:
-                # 格式: @@ -old_start,old_len +new_start,new_len @@
+                # Format: @@ -old_start,old_len +new_start,new_len @@
                 hunk_match = re.search(r'@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@', line)
                 if hunk_match:
                     old_start = int(hunk_match.group(1))
@@ -77,11 +77,11 @@ class GitDiffParser:
                         'new_start': new_start,
                         'new_len': new_len,
                         'lines': [],
-                        'context': line  # 保留原始上下文行
+                        'context': line  # Keep original context line
                     }
                     
                     i += 1
-                    # 读取hunk内容直到下一个@@或文件结束
+                    # Read hunk content until next @@ or end of file
                     while i < len(lines) and not lines[i].startswith('@@') and not lines[i].startswith('diff --git'):
                         hunk_line = lines[i]
                         line_type = 'context'
@@ -108,7 +108,7 @@ class GitDiffParser:
             else:
                 i += 1
         
-        # 添加最后一个文件
+        # Add last file
         if current_file:
             files.append(current_file)
         
@@ -116,8 +116,8 @@ class GitDiffParser:
     
     @staticmethod
     def _extract_package(file_path: str) -> str:
-        """从文件路径提取包名（适用于Java/Kotlin）"""
-        # 查找src/main/java/后面的路径
+        """Extracts package name from file path (for Java/Kotlin)"""
+        # Find path after src/main/java/
         patterns = [
             r'src/main/java/(.+)\.(kt|java)$',
             r'src/(.+)\.(kt|java)$',
@@ -126,16 +126,16 @@ class GitDiffParser:
         for pattern in patterns:
             match = re.search(pattern, file_path)
             if match:
-                # 将路径分隔符替换为点
+                # Replace path separators with dots
                 package_path = match.group(1)
                 return package_path.replace('/', '.')
         
-        # 如果无法提取，返回文件路径
+        # If cannot extract, return file path
         return file_path
     
     @staticmethod
     def _detect_language(file_path: str) -> str:
-        """根据文件扩展名检测编程语言"""
+        """Detects programming language based on file extension"""
         ext = Path(file_path).suffix.lower()
         if ext == '.kt':
             return 'kotlin'
@@ -154,9 +154,9 @@ class GitDiffParser:
 
 
 class HTMLReportGenerator:
-    """生成HTML报告"""
+    """Generates HTML reports"""
     
-    # 规则到 refer 文件的映射
+    # Rule to refer file mapping
     RULE_REFER_MAPPING = {
         # Base rules
         'no_globalscope': 'no_globalscope_refer.kt',
@@ -172,28 +172,28 @@ class HTMLReportGenerator:
         
         # Flow rules
         'flowon_main_dispatcher': 'flowon_main_dispatcher_refer.kt',
-        'missing_flowon': 'flowon_main_dispatcher_refer.kt',  # 使用同一个 refer
-        'channel_flow_usage': 'flowon_main_dispatcher_refer.kt',  # 使用同一个 refer
-        'eager_sharing_detected': 'flowon_main_dispatcher_refer.kt',  # 使用同一个 refer
-        'mutable_stateflow_exposed': 'flowon_main_dispatcher_refer.kt',  # 使用同一个 refer
+        'missing_flowon': 'flowon_main_dispatcher_refer.kt',  # Uses same refer
+        'channel_flow_usage': 'flowon_main_dispatcher_refer.kt',  # Uses same refer
+        'eager_sharing_detected': 'flowon_main_dispatcher_refer.kt',  # Uses same refer
+        'mutable_stateflow_exposed': 'flowon_main_dispatcher_refer.kt',  # Uses same refer
         
         # Flow lifecycle rules
-        'statein_globalscope': 'no_globalscope_refer.kt',  # 类似的全局作用域问题
-        'sharein_globalscope': 'no_globalscope_refer.kt',  # 类似的全局作用域问题
-        'collect_without_repeat': 'flowon_main_dispatcher_refer.kt',  # Flow 生命周期管理
-        'statein_without_viewmodelscope': 'unspecified_scope_refer.kt',  # 作用域问题
+        'statein_globalscope': 'no_globalscope_refer.kt',  # Similar global scope issue
+        'sharein_globalscope': 'no_globalscope_refer.kt',  # Similar global scope issue
+        'collect_without_repeat': 'flowon_main_dispatcher_refer.kt',  # Flow lifecycle management
+        'statein_without_viewmodelscope': 'unspecified_scope_refer.kt',  # Scope issue
         
         # Flow structure rules
-        'nested_launch_in_collect': 'flowon_main_dispatcher_refer.kt',  # Flow 结构化并发
-        'launch_inside_flow': 'flowon_main_dispatcher_refer.kt',  # Flow 结构化并发
-        'multiple_collects': 'flowon_main_dispatcher_refer.kt',  # Flow 使用模式
-        'channel_flow_no_awaitclose': 'flowon_main_dispatcher_refer.kt',  # channelFlow 正确使用
+        'nested_launch_in_collect': 'flowon_main_dispatcher_refer.kt',  # Flow structured concurrency
+        'launch_inside_flow': 'flowon_main_dispatcher_refer.kt',  # Flow structured concurrency
+        'multiple_collects': 'flowon_main_dispatcher_refer.kt',  # Flow usage pattern
+        'channel_flow_no_awaitclose': 'flowon_main_dispatcher_refer.kt',  # channelFlow correct usage
         
         # Dagger2/Hilt rules
-        'singleton_activity': 'viewmodel_context_refer.kt',  # 类似的依赖注入问题
-        'singleton_component_inject_activity': 'viewmodel_context_refer.kt',  # 依赖注入生命周期
-        'field_injection_detected': 'viewmodel_context_refer.kt',  # 依赖注入最佳实践
-        'provides_without_scope': 'viewmodel_context_refer.kt',  # 依赖注入作用域
+        'singleton_activity': 'viewmodel_context_refer.kt',  # Similar dependency injection issue
+        'singleton_component_inject_activity': 'viewmodel_context_refer.kt',  # DI lifecycle
+        'field_injection_detected': 'viewmodel_context_refer.kt',  # DI best practice
+        'provides_without_scope': 'viewmodel_context_refer.kt',  # DI scope
     }
     
     @staticmethod
@@ -203,9 +203,9 @@ class HTMLReportGenerator:
         score: int,
         output_path: str = 'code_review_report.html'
     ) -> str:
-        """生成HTML报告"""
+        """Generates HTML report"""
         
-        # 按包名分组文件
+        # Group files by package
         files_by_package = {}
         for file_data in diff_data:
             package = file_data['package']
@@ -213,23 +213,23 @@ class HTMLReportGenerator:
                 files_by_package[package] = []
             files_by_package[package].append(file_data)
         
-        # 将findings映射到文件
+        # Map findings to files
         findings_by_file = {}
         for finding in findings:
-            # 根据规则推断可能相关的文件
-            # TODO: 更精确的映射需要规则引擎支持
+            # Infer potentially related files based on rules
+            # TODO: More precise mapping requires rule engine support
             file_path = HTMLReportGenerator._infer_file_from_finding(finding, diff_data)
             if file_path:
                 if file_path not in findings_by_file:
                     findings_by_file[file_path] = []
                 findings_by_file[file_path].append(finding)
         
-        # 复制 refer_examples 到报告目录
+        # Copy refer_examples to report directory
         report_dir = os.path.dirname(output_path)
         if report_dir:
             HTMLReportGenerator._copy_refer_examples_to_report(report_dir)
         
-        # 生成HTML
+        # Generate HTML
         html = HTMLReportGenerator._generate_html(
             files_by_package, 
             findings_by_file, 
@@ -238,7 +238,7 @@ class HTMLReportGenerator:
             report_dir
         )
         
-        # 写入文件
+        # Write file
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
         
@@ -246,32 +246,32 @@ class HTMLReportGenerator:
     
     @staticmethod
     def _copy_refer_examples_to_report(report_dir: str):
-        """复制 refer_examples 目录到报告目录"""
+        """Copies refer_examples directory to report directory"""
         import shutil
         
-        # 获取当前脚本的绝对路径
+        # Get absolute path of current script
         script_dir = os.path.dirname(os.path.abspath(__file__))
         source_dir = os.path.join(script_dir, 'refer_examples')
         target_dir = os.path.join(report_dir, 'refer_examples')
         
-        print(f"🔍 复制 refer 文件 - 源目录: {source_dir}")
-        print(f"🔍 复制 refer 文件 - 目标目录: {target_dir}")
+        print(f"🔍 Copying refer files - Source: {source_dir}")
+        print(f"🔍 Copying refer files - Target: {target_dir}")
         
         if not os.path.exists(source_dir):
-            print(f"⚠ refer_examples 目录不存在: {source_dir}")
-            # 尝试在当前工作目录查找
+            print(f"⚠ refer_examples directory not found: {source_dir}")
+            # Try to find in current working directory
             cwd = os.getcwd()
             alt_source_dir = os.path.join(cwd, 'refer_examples')
             if os.path.exists(alt_source_dir):
-                print(f"🔍 使用备选源目录: {alt_source_dir}")
+                print(f"🔍 Using alternative source directory: {alt_source_dir}")
                 source_dir = alt_source_dir
             else:
                 return
         
-        # 创建目标目录
+        # Create target directory
         os.makedirs(target_dir, exist_ok=True)
         
-        # 复制所有 .kt 文件
+        # Copy all .kt files
         files_copied = 0
         for filename in os.listdir(source_dir):
             if filename.endswith('.kt'):
@@ -279,20 +279,20 @@ class HTMLReportGenerator:
                 target_file = os.path.join(target_dir, filename)
                 try:
                     shutil.copy2(source_file, target_file)
-                    print(f"✓ 复制 refer 文件: {filename}")
+                    print(f"✓ Copied refer file: {filename}")
                     files_copied += 1
                 except Exception as e:
-                    print(f"✗ 复制文件失败 {filename}: {e}")
+                    print(f"✗ Failed to copy file {filename}: {e}")
         
-        print(f"📦 总计复制 {files_copied} 个 refer 文件到报告目录")
+        print(f"📦 Total {files_copied} refer files copied to report directory")
     
     @staticmethod
     def _infer_file_from_finding(finding: Dict[str, Any], diff_data: List[Dict[str, Any]]) -> Optional[str]:
-        """根据finding推断相关的文件"""
+        """Infers related files from finding"""
         rule = finding.get('rule', '')
         message = finding.get('message', '')
         
-        # 简单规则：查找包含特定关键词的文件
+        # Simple rule: find files containing specific keywords
         keywords = {
             'no_globalscope': ['GlobalScope'],
             'viewmodel_context': ['ViewModel', 'Context'],
@@ -302,11 +302,11 @@ class HTMLReportGenerator:
         
         for file_data in diff_data:
             file_path = file_data['new_path']
-            # 检查文件内容是否包含相关关键词
+            # Check if file content contains related keywords
             for hunk in file_data.get('hunks', []):
                 for line in hunk.get('lines', []):
                     content = line.get('content', '')
-                    # 根据规则类型检查关键词
+                    # Check keywords based on rule type
                     for rule_pattern, key_list in keywords.items():
                         if rule == rule_pattern:
                             for keyword in key_list:
@@ -323,46 +323,46 @@ class HTMLReportGenerator:
         total_findings: int,
         report_dir: str = ''
     ) -> str:
-        """生成HTML内容"""
+        """Generates HTML content"""
         
-        # 计算 refer 文件的基础路径
+        # Calculate base path for refer files
         if report_dir:
             refer_base_path = 'refer_examples/'
         else:
             refer_base_path = '../refer_examples/'
         
-        # 严重性颜色映射
+        # Severity color mapping
         severity_colors = {
-            'critical': '#dc3545',  # 红色
-            'major': '#fd7e14',     # 橙色
-            'minor': '#ffc107',     # 黄色
-            'warning': '#17a2b8',   # 青色
-            'info': '#28a745',      # 绿色
+            'critical': '#dc3545',  # Red
+            'major': '#fd7e14',     # Orange
+            'minor': '#ffc107',     # Yellow
+            'warning': '#17a2b8',   # Cyan
+            'info': '#28a745',      # Green
         }
         
-        # 分数颜色
+        # Score color
         if score >= 90:
             score_color = '#28a745'
-            score_label = '优秀'
+            score_label = 'Excellent'
         elif score >= 70:
             score_color = '#ffc107'
-            score_label = '良好'
+            score_label = 'Good'
         elif score >= 50:
             score_color = '#fd7e14'
-            score_label = '一般'
+            score_label = 'Average'
         else:
             score_color = '#dc3545'
-            score_label = '需要改进'
+            score_label = 'Needs Improvement'
         
-        # 当前时间
+        # Current time
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
         html = f'''<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>代码审查报告</title>
+    <title>Code Review Report</title>
     <style>
         * {{
             margin: 0;
@@ -611,11 +611,11 @@ class HTMLReportGenerator:
 <body>
     <div class="container">
         <header class="header">
-            <h1>📋 代码审查报告</h1>
-            <p>基于DeepSeek模型的智能代码质量分析</p>
+            <h1>📋 Code Review Report</h1>
+            <p>Intelligent code quality analysis based on DeepSeek model</p>
             <div class="meta">
-                <div>生成时间: {now}</div>
-                <div>审查工具: Android代码审查技能</div>
+                <div>Generated: {now}</div>
+                <div>Review Tool: Android Code Review Skill</div>
             </div>
         </header>
         
@@ -627,19 +627,19 @@ class HTMLReportGenerator:
         <div class="summary">
             <div class="summary-item">
                 <div class="summary-number">{len(files_by_package)}</div>
-                <div class="summary-label">包数量</div>
+                <div class="summary-label">Packages</div>
             </div>
             <div class="summary-item">
                 <div class="summary-number">{sum(len(files) for files in files_by_package.values())}</div>
-                <div class="summary-label">文件数量</div>
+                <div class="summary-label">Files</div>
             </div>
             <div class="summary-item">
                 <div class="summary-number">{total_findings}</div>
-                <div class="summary-label">发现问题</div>
+                <div class="summary-label">Issues Found</div>
             </div>
             <div class="summary-item">
                 <div class="summary-number">{len([f for f in findings_by_file.values() if any(finding.get('severity') == 'critical' for finding in f)])}</div>
-                <div class="summary-label">严重问题</div>
+                <div class="summary-label">Critical Issues</div>
             </div>
         </div>
         
@@ -648,15 +648,15 @@ class HTMLReportGenerator:
         {HTMLReportGenerator._generate_findings_section(findings_by_file, severity_colors, report_dir)}
         
         <footer class="footer">
-            <p>© {datetime.now().year} Android代码审查工具 | 使用DeepSeek模型进行语义分析</p>
-            <p>报告生成时间: {now}</p>
+            <p>© {datetime.now().year} Android Code Review Tool | Semantic analysis using DeepSeek model</p>
+            <p>Report generated: {now}</p>
         </footer>
     </div>
     
     <script>
-        // 简单的交互功能
+        // Simple interaction features
         document.addEventListener('DOMContentLoaded', function() {{
-            // 点击文件头部切换代码显示
+            // Toggle code display when clicking file header
             document.querySelectorAll('.file-header').forEach(header => {{
                 header.addEventListener('click', function() {{
                     const codeContainer = this.nextElementSibling;
@@ -669,7 +669,7 @@ class HTMLReportGenerator:
                     }}
                 }});
                 
-                // 添加切换图标
+                // Add toggle icon
                 const toggleIcon = document.createElement('span');
                 toggleIcon.className = 'toggle-icon';
                 toggleIcon.textContent = '▼';
@@ -678,7 +678,7 @@ class HTMLReportGenerator:
                 this.appendChild(toggleIcon);
             }});
             
-            // 高亮有问题的行
+            // Highlight problematic lines
             document.querySelectorAll('.line-problem').forEach(line => {{
                 line.addEventListener('mouseenter', function() {{
                     this.style.backgroundColor = '#ffeaa7';
@@ -688,7 +688,7 @@ class HTMLReportGenerator:
                 }});
             }});
             
-            // 切换 refer 代码示例显示
+            // Toggle refer code example display
             document.querySelectorAll('.toggle-refer-btn').forEach(button => {{
                 button.addEventListener('click', function() {{
                     const targetId = this.getAttribute('data-target');
@@ -716,7 +716,7 @@ class HTMLReportGenerator:
     
     @staticmethod
     def _generate_package_sections(files_by_package, findings_by_file):
-        """生成包和文件部分的HTML"""
+        """Generates HTML for package and file sections"""
         sections = []
         
         for package, files in sorted(files_by_package.items()):
@@ -724,24 +724,24 @@ class HTMLReportGenerator:
             <section class="package-section">
                 <div class="package-header">
                     <span>📁 {package}</span>
-                    <span>{len(files)} 个文件</span>
+                    <span>{len(files)} files</span>
                 </div>'''
             
             for file_data in files:
                 file_path = file_data['new_path']
                 file_findings = findings_by_file.get(file_path, [])
                 
-                # 生成代码行
+                # Generate code lines
                 code_lines = []
                 current_line = 1
                 
                 for hunk in file_data.get('hunks', []):
                     hunk_start = hunk.get('new_start', 1)
                     
-                    # 添加hunk上下文
+                    # Add hunk context
                     code_lines.append({
                         'line_number': '...',
-                        'content': f'// {hunk.get("context", "变更块")}',
+                        'content': f'// {hunk.get("context", "Change block")}',
                         'type': 'context',
                         'findings': []
                     })
@@ -750,10 +750,10 @@ class HTMLReportGenerator:
                         line_type = line_data['type']
                         content = line_data['content']
                         
-                        # 检查这一行是否有问题
+                        # Check if this line has issues
                         line_findings = []
                         for finding in file_findings:
-                            # 简单匹配：如果行内容包含相关关键词
+                            # Simple match: if line content contains related keywords
                             rule = finding.get('rule', '')
                             if rule == 'no_globalscope' and 'GlobalScope' in content:
                                 line_findings.append(finding)
@@ -770,12 +770,12 @@ class HTMLReportGenerator:
                         if line_type != 'removed':
                             current_line += 1
                 
-                # 生成文件HTML
+                # Generate file HTML
                 file_html = f'''
                 <div class="file-section">
                     <div class="file-header">
                         <span class="file-path">{file_path}</span>
-                        <span>{len(file_findings)} 个问题</span>
+                        <span>{len(file_findings)} issues</span>
                     </div>
                     <div class="code-container">
                         <table class="code-table">
@@ -793,7 +793,7 @@ class HTMLReportGenerator:
     
     @staticmethod
     def _generate_code_rows(code_lines):
-        """生成代码行的HTML"""
+        """Generates HTML for code lines"""
         rows = []
         
         for line_data in code_lines:
@@ -802,21 +802,21 @@ class HTMLReportGenerator:
             line_type = line_data['type']
             findings = line_data['findings']
             
-            # 转义HTML特殊字符
+            # Escape HTML special characters
             content = HTMLReportGenerator._escape_html(content)
             
-            # 确定行类
+            # Determine line class
             line_class = ''
             if line_type == 'added':
                 line_class = 'line-added'
             elif line_type == 'removed':
                 line_class = 'line-removed'
             
-            # 如果有问题，添加问题标记
+            # If there are issues, add problem marker
             problem_html = ''
             if findings:
                 line_class += ' line-problem'
-                # 显示第一个问题的严重性
+                # Display severity of first issue
                 severity = findings[0].get('severity', 'minor')
                 severity_colors = {
                     'critical': '#dc3545',
@@ -838,7 +838,7 @@ class HTMLReportGenerator:
     
     @staticmethod
     def _escape_html(text: str) -> str:
-        """转义 HTML 特殊字符"""
+        """Escapes HTML special characters"""
         return (text.replace('&', '&')
                     .replace('<', '<')
                     .replace('>', '>')
@@ -847,20 +847,20 @@ class HTMLReportGenerator:
     
     @staticmethod
     def _read_refer_file_content(refer_file_path: str) -> Optional[str]:
-        """读取 refer 文件内容，如果文件不存在则返回 None"""
+        """Reads refer file content, returns None if file does not exist"""
         try:
             if os.path.exists(refer_file_path):
                 with open(refer_file_path, 'r', encoding='utf-8') as f:
                     return f.read()
             
-            # 尝试在当前目录的 refer_examples 中查找
+            # Try to find in current directory's refer_examples
             cwd = os.getcwd()
             alt_path = os.path.join(cwd, 'refer_examples', os.path.basename(refer_file_path))
             if os.path.exists(alt_path):
                 with open(alt_path, 'r', encoding='utf-8') as f:
                     return f.read()
             
-            # 尝试在脚本目录的 refer_examples 中查找
+            # Try to find in script directory's refer_examples
             script_dir = os.path.dirname(os.path.abspath(__file__))
             script_path = os.path.join(script_dir, 'refer_examples', os.path.basename(refer_file_path))
             if os.path.exists(script_path):
@@ -869,14 +869,14 @@ class HTMLReportGenerator:
             
             return None
         except Exception as e:
-            print(f"⚠ 读取 refer 文件失败 {refer_file_path}: {e}")
+            print(f"⚠ Failed to read refer file {refer_file_path}: {e}")
             return None
     
     @staticmethod
     def _generate_findings_section(findings_by_file, severity_colors, report_dir=''):
-        """生成问题列表部分的HTML"""
+        """Generates HTML for findings list section"""
         if not findings_by_file:
-            return '<div class="findings-panel"><p>🎉 没有发现问题！代码质量优秀。</p></div>'
+            return '<div class="findings-panel"><p>🎉 No issues found! Excellent code quality.</p></div>'
         
         all_findings = []
         for file_path, findings in findings_by_file.items():
@@ -884,36 +884,36 @@ class HTMLReportGenerator:
                 finding['file_path'] = file_path
                 all_findings.append(finding)
         
-        # 按严重性排序：critical > major > minor > warning > info
+        # Sort by severity: critical > major > minor > warning > info
         severity_order = {'critical': 0, 'major': 1, 'minor': 2, 'warning': 3, 'info': 4}
         all_findings.sort(key=lambda x: severity_order.get(x.get('severity', 'info'), 4))
         
-        findings_html = '<div class="findings-panel"><h3 style="margin-bottom: 1rem;">📝 发现问题列表</h3>'
+        findings_html = '<div class="findings-panel"><h3 style="margin-bottom: 1rem;">📝 Issues Found</h3>'
         
         for finding_index, finding in enumerate(all_findings):
             severity = finding.get('severity', 'info')
             rule = finding.get('rule', 'unknown')
             message = finding.get('message', '')
-            file_path = finding.get('file_path', '未知文件')
+            file_path = finding.get('file_path', 'Unknown file')
             
             color = severity_colors.get(severity, '#6c757d')
             
-            # 获取 refer 文件内容
+            # Get refer file content
             refer_content_html = ''
             refer_file = HTMLReportGenerator.RULE_REFER_MAPPING.get(rule)
             if refer_file:
-                # 尝试多种方式查找 refer 文件
+                # Try multiple ways to find refer file
                 refer_paths_to_try = []
                 
-                # 1. 报告目录中的 refer_examples
+                # 1. refer_examples in report directory
                 if report_dir:
                     refer_paths_to_try.append(os.path.join(report_dir, 'refer_examples', refer_file))
                 
-                # 2. 当前工作目录中的 refer_examples
+                # 2. refer_examples in current working directory
                 cwd = os.getcwd()
                 refer_paths_to_try.append(os.path.join(cwd, 'refer_examples', refer_file))
                 
-                # 3. 脚本目录中的 refer_examples
+                # 3. refer_examples in script directory
                 script_dir = os.path.dirname(os.path.abspath(__file__))
                 refer_paths_to_try.append(os.path.join(script_dir, 'refer_examples', refer_file))
                 
@@ -928,27 +928,27 @@ class HTMLReportGenerator:
                             continue
                 
                 if refer_content:
-                    # 所有示例都默认展开
+                    # All examples expanded by default
                     default_expanded = True
                     display_style = 'block' if default_expanded else 'none'
                     toggle_icon = '▼' if default_expanded else '▶'
                     
-                    # 转义 HTML 并添加语法高亮类
+                    # Escape HTML and add syntax highlighting classes
                     escaped_content = HTMLReportGenerator._escape_html(refer_content)
                     refer_content_html = f'''
                     <div class="refer-code-container" id="refer-code-{finding_index}" style="display: {display_style}; margin-top: 1rem;">
                         <div class="refer-header" style="background: #f1f3f5; padding: 0.5rem 1rem; border-radius: 4px 4px 0 0; font-weight: bold; font-size: 0.9rem; color: #495057;">
-                            📄 正确代码示例: {refer_file}
+                            📄 Correct Code Example: {refer_file}
                         </div>
                         <pre class="refer-code" style="margin: 0; padding: 1rem; background: #f8f9fa; border-radius: 0 0 4px 4px; overflow-x: auto; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 0.85rem; line-height: 1.4; color: #212529; border: 1px solid #dee2e6; border-top: none; max-height: 400px; overflow-y: auto;">
 {escaped_content}
                         </pre>
                     </div>'''
             
-            # 生成 refer 链接和切换按钮
+            # Generate refer link and toggle button
             refer_link_html = ''
             if refer_file:
-                # 所有示例都默认展开
+                # All examples expanded by default
                 default_expanded = True
                 toggle_icon = '▼' if default_expanded else '▶'
                 button_style = 'background: #007bff; color: white;' if default_expanded else 'background: none; color: #007bff;'
@@ -956,7 +956,7 @@ class HTMLReportGenerator:
                 refer_link_html = f'''
                 <div style="margin-top: 0.5rem; font-size: 0.9rem;">
                     <button class="toggle-refer-btn" data-target="refer-code-{finding_index}" style="{button_style} border: 1px solid #007bff; padding: 0.25rem 0.75rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem; transition: all 0.2s;">
-                        📖 查看正确的代码示例 <span class="toggle-icon">{toggle_icon}</span>
+                        📖 View Correct Code Example <span class="toggle-icon">{toggle_icon}</span>
                     </button>
                 </div>'''
             
@@ -977,12 +977,12 @@ class HTMLReportGenerator:
 
 
 def main():
-    """测试函数"""
-    # 读取测试数据
+    """Main function"""
+    # Read test data
     import sys
     sys.path.append('.')
     
-    # 模拟测试数据
+    # Mock test data
     test_diff = '''diff --git a/app/src/main/java/com/yxhuang/flowforandroid/HomeViewModel.kt b/app/src/main/java/com/yxhuang/flowforandroid/HomeViewModel.kt
 index ebfe86a..c2ad7ad 100644
 --- a/app/src/main/java/com/yxhuang/flowforandroid/HomeViewModel.kt
@@ -1000,7 +1000,7 @@ index ebfe86a..c2ad7ad 100644
 +            }
 +        }
 +    }
- 
+
 +    override fun onCleared() {
 +        super.onCleared()
 +    }
@@ -1019,16 +1019,16 @@ index ebfe86a..c2ad7ad 100644
         }
     ]
     
-    # 解析diff
+    # Parse diff
     diff_data = GitDiffParser.parse(test_diff)
     
-    # 生成报告
+    # Generate report
     report_path = HTMLReportGenerator.generate_report(
         diff_data, test_findings, 65, 'test_report.html'
     )
     
-    print(f"报告已生成: {report_path}")
-    print(f"打开报告: open {report_path}")
+    print(f"Report generated: {report_path}")
+    print(f"Open report: open {report_path}")
 
 
 if __name__ == "__main__":

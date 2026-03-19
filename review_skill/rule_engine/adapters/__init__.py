@@ -1,6 +1,5 @@
-"""
-规则引擎适配器模块
-提供规则装饰器支持
+"""Rule Engine
+Rule Decorators
 """
 
 from .decorators import rule, pattern_rule

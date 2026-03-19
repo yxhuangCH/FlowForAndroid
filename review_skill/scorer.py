@@ -3,7 +3,7 @@ import re
 def run_base_rules(code):
     findings = []
 
-    # GlobalScope 检测
+    # GlobalScope detection
     if "GlobalScope.launch" in code:
         findings.append({
             "severity": "critical",
@@ -11,7 +11,7 @@ def run_base_rules(code):
             "message": "GlobalScope is lifecycle unsafe."
         })
 
-    # ViewModel 持有 Context
+    # ViewModel holding Context
     pattern = r"class\s+\w+ViewModel.*Context"
     if re.search(pattern, code):
         findings.append({
@@ -25,13 +25,13 @@ def run_base_rules(code):
 
 def calculate_score(findings):
     """
-    基于 findings 计算代码质量分数
-    初始分数：100分
-    扣分规则：
-    - critical: 每个扣20分
-    - major: 每个扣10分
-    - minor: 每个扣5分
-    最低分数：0分
+    Calculate code quality score based on findings
+    Initial score: 100 points
+    Deduction rules:
+    - critical: -20 points each
+    - major: -10 points each
+    - minor: -5 points each
+    Minimum score: 0 points
     """
     if not findings:
         return 100
@@ -47,5 +47,5 @@ def calculate_score(findings):
         elif severity == "minor":
             score -= 5
     
-    # 确保分数在0-100之间
+    # Ensure score is between 0-100
     return max(0, min(100, score))

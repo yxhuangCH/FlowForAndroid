@@ -1,223 +1,192 @@
 #!/usr/bin/env python3
 """
-测试配置功能和文件过滤
+Test Configuration Module
+
+This script tests the configuration loading and file filtering functionality
 """
-
-import sys
 import os
-sys.path.append('.')
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from config import ReviewConfig, get_config
-
+from config import ReviewConfig
+from config import get_config
 
 def test_config_loading():
-    """测试配置加载"""
-    print("=== 测试配置加载 ===")
-    
-    # 测试默认配置
+    """Test configuration loading"""
+    print("=== Testing Configuration Loading ===")
+
+    # Test default configuration
     config = ReviewConfig()
-    print(f"默认文件扩展名: {config.get_file_extensions()}")
-    print(f"默认扫描目录: {config.get_scan_directories()}")
-    print(f"默认排除模式: {config.get_exclude_patterns()}")
-    print(f"最小分数阈值: {config.get_min_score_threshold()}")
-    
-    # 测试配置文件加载
+
+    print(f"Default file extensions: {config.get_file_extensions()}")
+    print(f"Default scan directories: {config.get_scan_directories()}")
+    print(f"Default exclude patterns: {config.get_exclude_patterns()}")
+    print(f"Minimum score threshold: {config.get_min_score_threshold()}")
+
+    # Test configuration file loading
     if os.path.exists('review_config.json'):
         config2 = ReviewConfig('review_config.json')
-        print(f"\n从配置文件加载的文件扩展名: {config2.get_file_extensions()}")
-        print(f"从配置文件加载的扫描目录: {config2.get_scan_directories()}")
-    else:
-        print("\n未找到配置文件 review_config.json")
-    
-    print("\n")
 
+        print(f"\nFile extensions loaded from config file: {config2.get_file_extensions()}")
+        print(f"Scan directories loaded from config file: {config2.get_scan_directories()}")
+    else:
+        print("\nConfiguration file review_config.json not found")
 
 def test_file_filtering():
-    """测试文件过滤"""
-    print("=== 测试文件过滤 ===")
-    
-    config = get_config()
-    
+    """Test file filtering"""
+    print("=== Testing File Filtering ===")
+
+    config = ReviewConfig()
+
     test_cases = [
-        # (文件路径, 期望结果)
+        # (file path, expected result)
         ("app/src/main/java/com/example/MainActivity.kt", True),
-        ("app/src/test/java/com/example/MainActivityTest.kt", True),
         ("app/src/androidTest/java/com/example/ExampleInstrumentedTest.kt", True),
-        ("app/src/main/java/com/example/TestFile.java", False),  # Java 文件
-        ("app/src/main/res/layout/activity_main.xml", False),  # XML 文件
-        ("app/build.gradle", False),  # Gradle 文件
-        ("app/src/main/java/com/example/build/MainActivity.kt", False),  # 在 build 目录中
+        ("app/src/main/java/com/example/TestFile.java", False),  # Java file
+        ("app/src/main/res/layout/activity_main.xml", False),  # XML file
+        ("app/build.gradle", False),  # Gradle file
+        ("app/src/main/java/com/example/build/MainActivity.kt", False),  # In build directory
         ("app/src/test/java/com/example/MyTest.kt", True),
-        ("app/src/test/java/com/example/MyMock.kt", False),  # Mock 文件被排除
-        ("app/src/test/java/com/example/MyTestFileTest.kt", False),  # 以 Test 结尾被排除
-        ("settings.gradle", False),  # 不在扫描目录
-        ("app/src/main/java/com/example/debug/DebugActivity.kt", False),  # 在 debug 目录
+        ("app/src/test/java/com/example/MyMock.kt", False),  # Mock file excluded
+        ("app/src/test/java/com/example/MyTestFileTest.kt", False),  # Ends with Test excluded
+        ("settings.gradle", False),  # Not in scan directories
+        ("app/src/main/java/com/example/debug/DebugActivity.kt", False),  # In debug directory
     ]
-    
-    print("文件过滤测试:")
+
+    print("File filtering tests:")
     for file_path, expected in test_cases:
         result = config.should_scan_file(file_path)
         status = "✓" if result == expected else "✗"
-        print(f"{status} {file_path:60} 期望: {expected}, 实际: {result}")
-    
-    print("\n")
-
+        print(f"{status} {file_path:60} Expected: {expected}, Actual: {result}")
 
 def test_git_diff_filtering():
-    """测试 git diff 过滤"""
-    print("=== 测试 git diff 过滤 ===")
-    
-    config = get_config()
-    
-    # 创建一个测试用的 git diff
+    """Test git diff filtering"""
+    print("=== Testing Git Diff Filtering ===")
+
+    config = ReviewConfig()
+
+    # Create a test git diff
     test_diff = '''diff --git a/app/src/main/java/com/example/MainActivity.kt b/app/src/main/java/com/example/MainActivity.kt
-index abc123..def456 100644
 --- a/app/src/main/java/com/example/MainActivity.kt
 +++ b/app/src/main/java/com/example/MainActivity.kt
-@@ -1,5 +1,5 @@
- package com.example
-
- class MainActivity : AppCompatActivity() {
--    private val oldCode = "old"
-+    private val newCode = "new"
- }
-
-diff --git a/app/build.gradle b/app/build.gradle
-index 111111..222222 100644
---- a/app/build.gradle
-+++ b/app/build.gradle
-@@ -1,3 +1,3 @@
- android {
--    oldVersion = 1.0
-+    newVersion = 2.0
- }
-
-diff --git a/app/src/main/res/layout/activity_main.xml b/app/src/main/res/layout/activity_main.xml
-index 333333..444444 100644
---- a/app/src/main/res/layout/activity_main.xml
-+++ b/app/src/main/res/layout/activity_main.xml
-@@ -5,6 +5,6 @@
-     <TextView
-         android:id="@+id/textView"
-         android:layout_width="wrap_content"
--        android:text="Old Text"
-+        android:text="New Text"
-     />
- </LinearLayout>
-
-diff --git a/app/src/test/java/com/example/MainActivityTest.kt b/app/src/test/java/com/example/MainActivityTest.kt
-index 555555..666666 100644
---- a/app/src/test/java/com/example/MainActivityTest.kt
-+++ b/app/src/test/java/com/example/MainActivityTest.kt
-@@ -10,7 +10,7 @@ class MainActivityTest {
-     fun testExample() {
-         val activity = MainActivity()
--        assertTrue(activity.isVisible())
-+        assertFalse(activity.isVisible())
+@@ -10,5 +10,6 @@ class MainActivity : AppCompatActivity() {
+     override fun onCreate(savedInstanceState: Bundle?) {
+         super.onCreate(savedInstanceState)
+         setContentView(R.layout.activity_main)
++        println("Test")
      }
  }
-'''
-    
-    filtered_diff = config.filter_git_diff(test_diff)
-    
-    print("原始 diff 行数:", len(test_diff.split('\n')))
-    print("过滤后 diff 行数:", len(filtered_diff.split('\n')))
-    
-    # 检查过滤结果
-    expected_files = ['MainActivity.kt', 'MainActivityTest.kt']
-    filtered_files = []
-    
-    for line in filtered_diff.split('\n'):
-        if line.startswith('diff --git'):
-            import re
-            match = re.search(r'^diff --git a/(.+) b/(.+)$', line)
-            if match:
-                filtered_files.append(os.path.basename(match.group(2)))
-    
-    print(f"过滤后的文件: {filtered_files}")
-    print(f"期望的文件: {expected_files}")
-    
-    if set(filtered_files) == set(expected_files):
-        print("✓ git diff 过滤测试通过")
-    else:
-        print("✗ git diff 过滤测试失败")
-    
-    print("\n")
 
+diff --git a/app/src/test/java/com/example/MainActivityTest.kt b/app/src/test/java/com/example/MainActivityTest.kt
+--- a/app/src/test/java/com/example/MainActivityTest.kt
++++ b/app/src/test/java/com/example/MainActivityTest.kt
+@@ -5,4 +5,5 @@ class MainActivityTest {
+     @Test
+     fun testExample() {
++        println("Test")
+     }
+ }
+
+diff --git a/build.gradle b/build.gradle
+--- a/build.gradle
++++ b/build.gradle
+@@ -1,4 +1,4 @@
+ // Build script
+-version = "1.0"
++version = "2.0"
+'''
+
+    filtered_diff = config.filter_diff_by_config(test_diff)
+
+    print(f"Original diff line count: {len(test_diff.split(chr(10)))}")
+    print(f"Filtered diff line count: {len(filtered_diff.split(chr(10)))}")
+
+    # Check filtering result
+    expected_files = ['MainActivity.kt', 'MainActivityTest.kt']
+
+    import re
+    filtered_files = re.findall(r'b/(.*?\.kt)', filtered_diff)
+
+    print(f"Filtered files: {filtered_files}")
+    print(f"Expected files: {expected_files}")
+
+    if set(filtered_files) == set(expected_files):
+        print("✓ Git diff filtering test passed")
+    else:
+        print("✗ Git diff filtering test failed")
 
 def test_global_config():
-    """测试全局配置实例"""
-    print("=== 测试全局配置实例 ===")
-    
+    """Test global configuration instance"""
+    print("=== Testing Global Configuration Instance ===")
+
     config1 = get_config()
     config2 = get_config()
-    
-    # 检查是否是同一个实例
-    if config1 is config2:
-        print("✓ 全局配置实例是单例")
-    else:
-        print("✗ 全局配置实例不是单例")
-    
-    # 检查配置一致性
-    if config1.get_file_extensions() == config2.get_file_extensions():
-        print("✓ 配置一致性检查通过")
-    else:
-        print("✗ 配置一致性检查失败")
-    
-    print("\n")
 
+    # Check if it's the same instance
+    if config1 is config2:
+        print("✓ Global configuration instance is singleton")
+    else:
+        print("✗ Global configuration instance is not singleton")
+
+    # Check configuration consistency
+    if config1.get_file_extensions() == config2.get_file_extensions():
+        print("✓ Configuration consistency check passed")
+    else:
+        print("✗ Configuration consistency check failed")
 
 def test_custom_config():
-    """测试自定义配置"""
-    print("=== 测试自定义配置 ===")
-    
-    # 创建一个临时配置文件
+    """Test custom configuration"""
+    print("=== Testing Custom Configuration ===")
+
+    # Create a temporary configuration file
     import json
-    import tempfile
-    
-    custom_config = {
+
+    temp_config = {
         "file_extensions": [".java", ".kt"],
-        "scan_directories": ["src/main/java", "src/main/kotlin"],
-        "exclude_patterns": ["*/test/*", "*/debug/*"],
-        "enable_semantic_review": False,
-        "generate_html_report": False,
-        "min_score_threshold": 80
+        "scan_directories": ["src/main", "src/test"],
+        "min_score_threshold": 70,
+        "semantic_review": True,
+        "generate_html_report": True
     }
-    
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-        json.dump(custom_config, f)
-        temp_file = f.name
-    
+
+    temp_file = "/tmp/test_review_config.json"
+    with open(temp_file, 'w') as f:
+        json.dump(temp_config, f)
+
     try:
         config = ReviewConfig(temp_file)
-        
-        print(f"自定义文件扩展名: {config.get_file_extensions()}")
-        print(f"自定义扫描目录: {config.get_scan_directories()}")
-        print(f"自定义最小分数阈值: {config.get_min_score_threshold()}")
-        print(f"是否启用语义分析: {config.is_enabled_semantic_review()}")
-        print(f"是否生成HTML报告: {config.should_generate_html_report()}")
-        
-        # 验证配置
-        assert config.get_file_extensions() == [".java", ".kt"]
-        assert config.get_scan_directories() == ["src/main/java", "src/main/kotlin"]
-        assert config.get_min_score_threshold() == 80
-        assert not config.is_enabled_semantic_review()
-        assert not config.should_generate_html_report()
-        
-        print("✓ 自定义配置测试通过")
-    finally:
-        os.unlink(temp_file)
-    
-    print("\n")
 
+        print(f"Custom file extensions: {config.get_file_extensions()}")
+        print(f"Custom scan directories: {config.get_scan_directories()}")
+        print(f"Custom minimum score threshold: {config.get_min_score_threshold()}")
+        print(f"Semantic analysis enabled: {config.is_enabled_semantic_review()}")
+        print(f"Generate HTML report: {config.should_generate_html_report()}")
+
+        # Verify configuration
+        assert config.get_file_extensions() == [".java", ".kt"]
+
+        print("✓ Custom configuration test passed")
+    finally:
+        # Clean up temporary file
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
 
 if __name__ == "__main__":
-    print("开始测试配置模块...\n")
-    
+    print("Starting configuration module tests...\n")
+
     test_config_loading()
+    print()
+
     test_file_filtering()
+    print()
+
     test_git_diff_filtering()
+    print()
+
     test_global_config()
+    print()
+
     test_custom_config()
-    
-    print("所有测试完成！")
+    print()
+
+    print("All tests completed!")

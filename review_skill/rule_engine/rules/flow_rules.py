@@ -1,5 +1,5 @@
 """
-Flow相关规则 - 迁移到新引擎格式
+Flow-related rules - Migrated to new engine format
 """
 import re
 from typing import List
@@ -10,31 +10,31 @@ from ..adapters.decorators import rule
 
 @rule(
     rule_id="flowon_main_dispatcher",
-    name="Flow在主线程flowOn",
-    description="flowOn(Dispatchers.Main)可能导致上游操作在主线程执行",
+    name="Flow flowOn on Main Thread",
+    description="flowOn(Dispatchers.Main) may cause upstream operations to execute on the main thread",
     severity=RuleSeverity.CRITICAL,
     category=RuleCategory.PERFORMANCE,
     tags=["android", "kotlin", "flow", "coroutine", "main_thread"],
-    suggested_fix="将flowOn移到适当的调度器，如Dispatchers.IO或Dispatchers.Default",
+    suggested_fix="Move flowOn to an appropriate dispatcher, such as Dispatchers.IO or Dispatchers.Default",
     weight=1.0
 )
 def flowon_main_dispatcher_rule(context: RuleContext) -> List[Finding]:
-    """检测flowOn(Dispatchers.Main)使用"""
+    """Detect flowOn(Dispatchers.Main) usage"""
     findings = []
     
     lines = context.get_lines()
     for i, line in enumerate(lines, 1):
         line_lower = line.lower()
-        # 检测flowOn(Dispatchers.Main)模式
+        # Detect flowOn(Dispatchers.Main) pattern
         if "flowon(" in line_lower and "dispatchers.main" in line_lower:
             findings.append(Finding(
                 rule_id="flowon_main_dispatcher",
-                message="flowOn(Dispatchers.Main)可能导致上游操作在主线程执行",
+                message="flowOn(Dispatchers.Main) may cause upstream operations to execute on the main thread",
                 severity=RuleSeverity.CRITICAL,
                 file_path=context.file_path,
                 line_number=i,
                 code_snippet=line,
-                suggestion="将flowOn移到适当的调度器，如Dispatchers.IO或Dispatchers.Default"
+                suggestion="Move flowOn to an appropriate dispatcher, such as Dispatchers.IO or Dispatchers.Default"
             ))
     
     return findings
@@ -42,16 +42,16 @@ def flowon_main_dispatcher_rule(context: RuleContext) -> List[Finding]:
 
 @rule(
     rule_id="missing_flowon_for_io",
-    name="Flow执行IO操作未指定flowOn",
-    description="Flow执行IO操作但未明确指定flowOn调度器",
+    name="Flow IO Operation Missing flowOn",
+    description="Flow performs IO operations but does not explicitly specify a flowOn dispatcher",
     severity=RuleSeverity.MAJOR,
     category=RuleCategory.PERFORMANCE,
     tags=["android", "kotlin", "flow", "io", "dispatcher"],
-    suggested_fix="为IO操作明确指定flowOn(Dispatchers.IO)",
+    suggested_fix="Explicitly specify flowOn(Dispatchers.IO) for IO operations",
     weight=0.9
 )
 def missing_flowon_for_io_rule(context: RuleContext) -> List[Finding]:
-    """检测Flow执行IO操作但缺少flowOn"""
+    """Detect Flow performing IO operations but missing flowOn"""
     findings = []
     
     code = context.code.lower()
@@ -60,19 +60,19 @@ def missing_flowon_for_io_rule(context: RuleContext) -> List[Finding]:
     has_flowon = "flowon" in code
     
     if has_flow_builder and has_io_operation and not has_flowon:
-        # 找到具体行
+        # Find specific line
         lines = context.get_lines()
         for i, line in enumerate(lines, 1):
             line_lower = line.lower()
             if "flow {" in line_lower:
                 findings.append(Finding(
                     rule_id="missing_flowon_for_io",
-                    message="Flow执行IO操作但未明确指定flowOn调度器",
+                    message="Flow performs IO operations but does not explicitly specify a flowOn dispatcher",
                     severity=RuleSeverity.MAJOR,
                     file_path=context.file_path,
                     line_number=i,
                     code_snippet=line,
-                    suggestion="为IO操作明确指定flowOn(Dispatchers.IO)"
+                    suggestion="Explicitly specify flowOn(Dispatchers.IO) for IO operations"
                 ))
                 break
     
@@ -81,16 +81,16 @@ def missing_flowon_for_io_rule(context: RuleContext) -> List[Finding]:
 
 @rule(
     rule_id="channel_flow_usage",
-    name="channelFlow使用检测",
-    description="channelFlow需要额外关注结构化并发和取消",
+    name="channelFlow Usage Detection",
+    description="channelFlow requires extra attention to structured concurrency and cancellation",
     severity=RuleSeverity.MAJOR,
     category=RuleCategory.CONCURRENCY,
     tags=["android", "kotlin", "flow", "channel", "concurrency"],
-    suggested_fix="验证channelFlow的结构化并发和取消处理",
+    suggested_fix="Verify structured concurrency and cancellation handling for channelFlow",
     weight=0.8
 )
 def channel_flow_usage_rule(context: RuleContext) -> List[Finding]:
-    """检测channelFlow使用"""
+    """Detect channelFlow usage"""
     findings = []
     
     lines = context.get_lines()
@@ -98,12 +98,12 @@ def channel_flow_usage_rule(context: RuleContext) -> List[Finding]:
         if "channelflow" in line.lower():
             findings.append(Finding(
                 rule_id="channel_flow_usage",
-                message="channelFlow需要额外关注结构化并发和取消",
+                message="channelFlow requires extra attention to structured concurrency and cancellation",
                 severity=RuleSeverity.MAJOR,
                 file_path=context.file_path,
                 line_number=i,
                 code_snippet=line,
-                suggestion="验证channelFlow的结构化并发和取消处理"
+                suggestion="Verify structured concurrency and cancellation handling for channelFlow"
             ))
     
     return findings
@@ -111,16 +111,16 @@ def channel_flow_usage_rule(context: RuleContext) -> List[Finding]:
 
 @rule(
     rule_id="eager_sharing_detected",
-    name="Eager共享检测",
-    description="SharingStarted.Eagerly会保持上游活跃，可能导致资源浪费",
+    name="Eager Sharing Detection",
+    description="SharingStarted.Eagerly keeps the upstream active, which may lead to resource waste",
     severity=RuleSeverity.MAJOR,
     category=RuleCategory.PERFORMANCE,
     tags=["android", "kotlin", "flow", "sharing", "resource"],
-    suggested_fix="考虑使用SharingStarted.Lazily或SharingStarted.WhileSubscribed",
+    suggested_fix="Consider using SharingStarted.Lazily or SharingStarted.WhileSubscribed",
     weight=0.8
 )
 def eager_sharing_detected_rule(context: RuleContext) -> List[Finding]:
-    """检测SharingStarted.Eagerly使用"""
+    """Detect SharingStarted.Eagerly usage"""
     findings = []
     
     lines = context.get_lines()
@@ -128,12 +128,12 @@ def eager_sharing_detected_rule(context: RuleContext) -> List[Finding]:
         if "sharingstarted.eagerly" in line.lower():
             findings.append(Finding(
                 rule_id="eager_sharing_detected",
-                message="SharingStarted.Eagerly会保持上游活跃，可能导致资源浪费",
+                message="SharingStarted.Eagerly keeps the upstream active, which may lead to resource waste",
                 severity=RuleSeverity.MAJOR,
                 file_path=context.file_path,
                 line_number=i,
                 code_snippet=line,
-                suggestion="考虑使用SharingStarted.Lazily或SharingStarted.WhileSubscribed"
+                suggestion="Consider using SharingStarted.Lazily or SharingStarted.WhileSubscribed"
             ))
     
     return findings
@@ -141,34 +141,34 @@ def eager_sharing_detected_rule(context: RuleContext) -> List[Finding]:
 
 @rule(
     rule_id="mutable_stateflow_exposed",
-    name="MutableStateFlow暴露检测",
-    description="MutableStateFlow不应公开暴露，应通过asStateFlow转换为只读版本",
+    name="MutableStateFlow Exposure Detection",
+    description="MutableStateFlow should not be publicly exposed; use asStateFlow to expose a read-only version",
     severity=RuleSeverity.MAJOR,
     category=RuleCategory.BEST_PRACTICE,
     tags=["android", "kotlin", "flow", "stateflow", "encapsulation"],
-    suggested_fix="将MutableStateFlow设为private，通过asStateFlow暴露只读版本",
+    suggested_fix="Make MutableStateFlow private and expose a read-only version via asStateFlow",
     weight=0.9
 )
 def mutable_stateflow_exposed_rule(context: RuleContext) -> List[Finding]:
-    """检测公开暴露的MutableStateFlow"""
+    """Detect publicly exposed MutableStateFlow"""
     findings = []
     
     lines = context.get_lines()
     for i, line in enumerate(lines, 1):
         line_lower = line.lower()
         line_stripped = line.strip()
-        # 检测MutableStateFlow赋值且不是private
+        # Detect MutableStateFlow assignment that is not private
         if "mutablestateflow" in line_lower and "private" not in line_lower:
-            # 检查是否是变量声明
+            # Check if it's a variable declaration
             if line_stripped.startswith("val ") or line_stripped.startswith("var "):
                 findings.append(Finding(
                     rule_id="mutable_stateflow_exposed",
-                    message="MutableStateFlow不应公开暴露，应通过asStateFlow转换为只读版本",
+                    message="MutableStateFlow should not be publicly exposed; use asStateFlow to expose a read-only version",
                     severity=RuleSeverity.MAJOR,
                     file_path=context.file_path,
                     line_number=i,
                     code_snippet=line,
-                    suggestion="将MutableStateFlow设为private，通过asStateFlow暴露只读版本"
+                    suggestion="Make MutableStateFlow private and expose a read-only version via asStateFlow"
                 ))
     
     return findings

@@ -1,6 +1,5 @@
-"""
-统一规则引擎
-提供可扩展、高性能、模块化的规则引擎系统
+"""Unified Rule Engine
+Provides extensible, high-performance, modular Rule Engine system
 """
 
 from .interfaces import (
@@ -15,13 +14,13 @@ from .context import RuleContext
 from .registry import RuleRegistry
 from .engine import RuleEngine
 
-# 适配器
+# Adapters
 from .adapters import (
     rule,
     pattern_rule
 )
 
-# 规则
+# Rule examples
 from .rules import (
     NoGlobalScopeRule,
     viewmodel_context_rule,
@@ -31,45 +30,45 @@ from .rules import (
 __version__ = "1.0.0"
 
 __all__ = [
-    # 核心接口
+    # Core interfaces
     'Rule',
     'RuleMetadata',
     'RuleSeverity',
     'RuleCategory',
     'Finding',
     
-    # 核心组件
+    # Core components
     'RuleContext',
     'RuleRegistry',
     'RuleEngine',
     
-    # 适配器
+    # Adapters
     'rule',
     'pattern_rule',
     
-    # 规则示例
+    # Rule examples
     'NoGlobalScopeRule',
     'viewmodel_context_rule',
     'main_thread_io_rule',
     
-    # 版本
+    # Version
     '__version__'
 ]
 
 
 def get_version():
-    """获取规则引擎版本"""
+    """Get Rule Engine version"""
     return __version__
 
 
 def create_engine(registry: RuleRegistry = None) -> RuleEngine:
     """
-    创建规则引擎的快捷函数
+    Quick function to create Rule Engine
     
     Args:
-        registry: 规则注册表，如果为None则创建新的
+        registry: Rule registry, if None creates a new one
         
     Returns:
-        规则引擎实例
+        Rule Engine instance
     """
     return RuleEngine(registry)

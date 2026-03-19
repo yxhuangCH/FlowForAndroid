@@ -4,33 +4,33 @@ from pathlib import Path
 import requests
 
 def load_env_if_exists():
-    """如果存在 .env 文件，加载环境变量"""
+    """Load environment variables from .env file if exists"""
     env_path = Path(__file__).parent / '.env'
     if env_path.exists():
         try:
             from dotenv import load_dotenv
             load_dotenv(env_path)
-            print(f"✓ 已从 {env_path} 加载环境变量")
+            print(f"✓ Environment variables loaded from {env_path}")
             return True
         except ImportError:
-            print("⚠ dotenv 未安装，无法从 .env 文件加载")
+            print("⚠ dotenv not installed, cannot load from .env file")
             return False
     return False
 
 
 def create_github_copilot_client(access_token: str):
-    """创建 GitHub Copilot Chat API 客户端
+    """Create GitHub Copilot Chat API client
     
-    GitHub Copilot Chat API 使用 GitHub Access Token 进行认证
-    需要先获取 Copilot Chat 的使用权限
+    GitHub Copilot Chat API uses GitHub Access Token for authentication
+    Need to obtain Copilot Chat usage permission first
     
     Args:
-        access_token: GitHub Personal Access Token (ghp_xxx) 或 Copilot Token (ghu_xxx)
+        access_token: GitHub Personal Access Token (ghp_xxx) or Copilot Token (ghu_xxx)
     
     Returns:
-        配置好的 OpenAI 客户端
+        Configured OpenAI client
     """
-    # GitHub Copilot Chat API 端点
+    # GitHub Copilot Chat API endpoint
     base_url = "https://api.githubcopilot.com"
     
     client = OpenAI(
@@ -48,28 +48,28 @@ def create_github_copilot_client(access_token: str):
 
 
 def semantic_review(code, provider: str = None):
-    """执行语义代码审查
+    """Perform semantic code review
     
     Args:
-        code: 要审查的代码
-        provider: LLM 提供商，可选值: 'deepseek', 'openai', 'github_copilot', None(自动检测)
+        code: Code to review
+        provider: LLM provider, optional values: 'deepseek', 'openai', 'github_copilot', None (auto-detect)
     
     Returns:
-        审查结果的文本内容
+        Review result text content
     """
-    # 尝试从 .env 文件加载环境变量
+    # Try to load environment variables from .env file
     load_env_if_exists()
     
-    # 如果没有指定 provider，从环境变量读取
+    # If no provider specified, read from environment variable
     if provider is None:
         provider = os.environ.get("LLM_PROVIDER", "auto").lower()
     
-    # 获取 API key
+    # Get API key
     github_copilot_token = os.environ.get("GITHUB_COPILOT_TOKEN")
     deepseek_api_key = os.environ.get("DEEPSEEK_API_KEY")
     openai_api_key = os.environ.get("OPENAI_API_KEY")
     
-    # 自动检测 provider
+    # Auto-detect provider
     if provider == "auto":
         if github_copilot_token:
             provider = "github_copilot"
@@ -78,64 +78,64 @@ def semantic_review(code, provider: str = None):
         elif openai_api_key:
             provider = "openai"
         else:
-            raise ValueError("未配置任何 LLM API Key，请设置 GITHUB_COPILOT_TOKEN、DEEPSEEK_API_KEY 或 OPENAI_API_KEY")
+            raise ValueError("No LLM API Key configured. Please set GITHUB_COPILOT_TOKEN, DEEPSEEK_API_KEY, or OPENAI_API_KEY")
     
-    # 根据 provider 创建客户端
+    # Create client based on provider
     client = None
     model = None
     base_url = None
     
     if provider == "github_copilot":
         if not github_copilot_token:
-            raise ValueError("使用 GitHub Copilot 时需要设置 GITHUB_COPILOT_TOKEN 环境变量")
+            raise ValueError("GITHUB_COPILOT_TOKEN environment variable is required when using GitHub Copilot")
         
         try:
             client = create_github_copilot_client(github_copilot_token)
-            model = os.environ.get("LLM_MODEL", "gpt-4o-copilot")  # Copilot 默认使用 gpt-4o-copilot
-            print(f"✓ 使用 GitHub Copilot Chat API")
+            model = os.environ.get("LLM_MODEL", "gpt-4o-copilot")  # Copilot defaults to gpt-4o-copilot
+            print(f"✓ Using GitHub Copilot Chat API")
         except Exception as e:
-            raise ValueError(f"初始化 GitHub Copilot 客户端失败: {e}")
+            raise ValueError(f"Failed to initialize GitHub Copilot client: {e}")
     
     elif provider == "deepseek":
         if not deepseek_api_key:
-            raise ValueError("使用 DeepSeek 时需要设置 DEEPSEEK_API_KEY 环境变量")
+            raise ValueError("DEEPSEEK_API_KEY environment variable is required when using DeepSeek")
         
         api_key = deepseek_api_key
         base_url = os.environ.get("OPENAI_BASE_URL", "https://api.deepseek.com")
         model = os.environ.get("LLM_MODEL", "deepseek-chat")
         
         client = OpenAI(api_key=api_key, base_url=base_url)
-        print(f"✓ 使用 DeepSeek API")
+        print(f"✓ Using DeepSeek API")
     
     elif provider == "openai":
         if not openai_api_key:
-            raise ValueError("使用 OpenAI 时需要设置 OPENAI_API_KEY 环境变量")
+            raise ValueError("OPENAI_API_KEY environment variable is required when using OpenAI")
         
         api_key = openai_api_key
         base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
         model = os.environ.get("LLM_MODEL", "gpt-4o-mini")
         
         client = OpenAI(api_key=api_key, base_url=base_url)
-        print(f"✓ 使用 OpenAI API")
+        print(f"✓ Using OpenAI API")
     
     else:
-        raise ValueError(f"不支持的 LLM 提供商: {provider}")
+        raise ValueError(f"Unsupported LLM provider: {provider}")
     
-    # 构建提示词
+    # Build prompt
     prompt = f"""
-你是 Android 代码审查专家。
-分析以下代码是否：
-1. 违反单一职责
-2. 过度耦合
-3. 难以单元测试
-输出 JSON。
-代码：
+You are an Android code review expert.
+Analyze the following code for:
+1. Single responsibility violations
+2. Excessive coupling
+3. Difficulty in unit testing
+Output JSON.
+Code:
 {code}
 """
     
-    # 执行 API 调用
+    # Execute API call
     try:
-        # 对于 GitHub Copilot，需要处理特殊的错误情况
+        # For GitHub Copilot, need to handle special error cases
         if provider == "github_copilot":
             try:
                 response = client.chat.completions.create(
@@ -148,22 +148,22 @@ def semantic_review(code, provider: str = None):
                 error_msg = str(e).lower()
                 if "401" in error_msg or "unauthorized" in error_msg:
                     raise ValueError(
-                        "GitHub Copilot 认证失败。请检查:\n"
-                        "1. GITHUB_COPILOT_TOKEN 是否正确\n"
-                        "2. Token 是否有 Copilot Chat 权限\n"
-                        "3. 在 https://github.com/settings/copilot 确认已启用 Copilot"
+                        "GitHub Copilot authentication failed. Please check:\n"
+                        "1. Whether GITHUB_COPILOT_TOKEN is correct\n"
+                        "2. Whether the token has Copilot Chat permission\n"
+                        "3. Confirm Copilot is enabled at https://github.com/settings/copilot"
                     )
                 elif "403" in error_msg or "forbidden" in error_msg:
                     raise ValueError(
-                        "GitHub Copilot 访问被拒绝。请检查:\n"
-                        "1. 你的 GitHub 账户是否订阅了 GitHub Copilot\n"
-                        "2. Token 是否有 'copilot' scope\n"
-                        "3. 在 https://github.com/settings/tokens 创建带有 copilot 权限的 token"
+                        "GitHub Copilot access denied. Please check:\n"
+                        "1. Whether your GitHub account has GitHub Copilot subscription\n"
+                        "2. Whether the token has 'copilot' scope\n"
+                        "3. Create a token with copilot permission at https://github.com/settings/tokens"
                     )
                 else:
                     raise
         else:
-            # DeepSeek 和 OpenAI 使用备用端点逻辑
+            # DeepSeek and OpenAI use backup endpoint logic
             if provider == "deepseek":
                 backup_endpoints = [
                     base_url,
@@ -192,18 +192,18 @@ def semantic_review(code, provider: str = None):
                     
                 except Exception as e:
                     last_error = e
-                    print(f"⚠ 端点 {endpoint} 失败: {str(e)[:100]}")
+                    print(f"⚠ Endpoint {endpoint} failed: {str(e)[:100]}")
                     continue
             
             if last_error:
                 raise last_error
     
     except Exception as e:
-        raise ValueError(f"LLM API 调用失败: {e}")
+        raise ValueError(f"LLM API call failed: {e}")
 
 
 def get_available_providers():
-    """获取当前可用的 LLM 提供商列表"""
+    """Get list of currently available LLM providers"""
     load_env_if_exists()
     
     providers = []
@@ -219,42 +219,42 @@ def get_available_providers():
 
 
 def validate_provider_config(provider: str) -> tuple[bool, str]:
-    """验证 LLM 提供商的配置是否正确
+    """Validate LLM provider configuration
     
     Args:
-        provider: 提供商名称
+        provider: Provider name
     
     Returns:
-        (是否有效, 错误信息)
+        (is valid, error message)
     """
     load_env_if_exists()
     
     if provider == "github_copilot":
         token = os.environ.get("GITHUB_COPILOT_TOKEN")
         if not token:
-            return False, "未设置 GITHUB_COPILOT_TOKEN"
+            return False, "GITHUB_COPILOT_TOKEN not set"
         
-        # 简单验证 token 格式
+        # Simple token format validation
         if not (token.startswith("ghp_") or token.startswith("ghu_")):
-            return False, "GITHUB_COPILOT_TOKEN 格式不正确，应以 ghp_ 或 ghu_ 开头"
+            return False, "GITHUB_COPILOT_TOKEN format incorrect, should start with ghp_ or ghu_"
         
-        return True, "配置有效"
+        return True, "Configuration valid"
     
     elif provider == "deepseek":
         api_key = os.environ.get("DEEPSEEK_API_KEY")
         if not api_key:
-            return False, "未设置 DEEPSEEK_API_KEY"
+            return False, "DEEPSEEK_API_KEY not set"
         if not api_key.startswith("sk-"):
-            return False, "DEEPSEEK_API_KEY 格式不正确，应以 sk- 开头"
-        return True, "配置有效"
+            return False, "DEEPSEEK_API_KEY format incorrect, should start with sk-"
+        return True, "Configuration valid"
     
     elif provider == "openai":
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
-            return False, "未设置 OPENAI_API_KEY"
+            return False, "OPENAI_API_KEY not set"
         if not api_key.startswith("sk-"):
-            return False, "OPENAI_API_KEY 格式不正确，应以 sk- 开头"
-        return True, "配置有效"
+            return False, "OPENAI_API_KEY format incorrect, should start with sk-"
+        return True, "Configuration valid"
     
     else:
-        return False, f"未知的提供商: {provider}"
+        return False, f"Unknown provider: {provider}"

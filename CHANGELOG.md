@@ -3,6 +3,7 @@
 ## Unreleased
 ### Added
 ### Changed
+- Covert Chinese to English
 ### Removed
 ### Fixed
 

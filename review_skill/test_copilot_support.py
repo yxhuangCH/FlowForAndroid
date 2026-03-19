@@ -1,165 +1,192 @@
 #!/usr/bin/env python3
 """
-测试 GitHub Copilot 支持
-验证 LLM 提供商配置和可用性检测
+Test GitHub Copilot Support
+
+Verify LLM provider configuration and availability detection
 """
 
-import os
 import sys
 from pathlib import Path
 
-# 确保可以导入 llm_layer
+# Ensure llm_layer can be imported
 sys.path.insert(0, str(Path(__file__).parent))
 
 from llm_layer import (
     get_available_providers,
     validate_provider_config,
-    semantic_review,
-    load_env_if_exists
+    LLMConfig,
+    semantic_review
 )
-from config import get_config
+from dotenv import load_dotenv
+
+
+def load_env_if_exists():
+    """Load environment variables if .env file exists"""
+    env_path = Path(__file__).parent / '.env'
+    if env_path.exists():
+        load_dotenv(env_path)
 
 
 def test_provider_detection():
-    """测试提供商自动检测"""
+    """Test provider auto-detection"""
     print("=" * 60)
-    print("测试 LLM 提供商自动检测")
+    print("Testing LLM Provider Auto-Detection")
     print("=" * 60)
-    
-    # 加载环境变量
+
+    # Load environment variables
     load_env_if_exists()
-    
-    # 获取可用提供商
+
+    # Get available providers
     providers = get_available_providers()
-    print(f"\n✓ 检测到 {len(providers)} 个可用的 LLM 提供商:")
+
+    print(f"\n✓ Detected {len(providers)} available LLM providers:")
     for provider_id, provider_name in providers:
         print(f"  - {provider_id}: {provider_name}")
-    
-    return providers
+
+    return len(providers) > 0
 
 
 def test_provider_validation():
-    """测试提供商配置验证"""
+    """Test provider configuration validation"""
     print("\n" + "=" * 60)
-    print("测试 LLM 提供商配置验证")
+    print("Testing LLM Provider Configuration Validation")
     print("=" * 60)
-    
-    providers = ['github_copilot', 'deepseek', 'openai']
-    
-    for provider in providers:
-        is_valid, message = validate_provider_config(provider)
+
+    # Load environment variables
+    load_env_if_exists()
+
+    # Test each provider
+    all_providers = ['github_copilot', 'deepseek', 'openai']
+
+    print("\nProvider configuration validation results:")
+    for provider_id in all_providers:
+        is_valid, message = validate_provider_config(provider_id)
         status = "✓" if is_valid else "✗"
-        print(f"\n{status} {provider}:")
-        print(f"   {message}")
+        print(f"  {status} {provider_id}: {message}")
 
 
 def test_config_integration():
-    """测试配置集成"""
+    """Test configuration integration"""
     print("\n" + "=" * 60)
-    print("测试配置集成")
+    print("Testing Configuration Integration")
     print("=" * 60)
-    
-    config = get_config()
-    
-    print(f"\nLLM 提供商: {config.get_llm_provider()}")
-    print(f"LLM 模型: {config.get_llm_model()}")
-    print(f"LLM 完整配置: {config.get_llm_config()}")
+
+    # Load environment variables
+    load_env_if_exists()
+
+    # Test configuration class
+    config = LLMConfig()
+
+    print(f"\nLLM Provider: {config.get_llm_provider()}")
+    print(f"LLM Model: {config.get_llm_model()}")
+    print(f"LLM Full Configuration: {config.get_llm_config()}")
 
 
 def test_semantic_review_mock():
-    """测试语义审查功能（使用 mock）"""
+    """Test semantic review functionality (using mock)"""
     print("\n" + "=" * 60)
-    print("测试语义审查功能")
+    print("Testing Semantic Review Functionality")
     print("=" * 60)
-    
-    # 测试代码
+
+    # Load environment variables
+    load_env_if_exists()
+
+    # Test code
     test_code = """
-class UserManager {
     fun processUser(user: User) {
-        // 验证用户
+        // Validate user
         if (user.age < 0) throw IllegalArgumentException()
-        // 保存到数据库
+
+        // Save to database
         database.save(user)
-        // 发送邮件
+
+        // Send email
         emailService.sendWelcomeEmail(user)
-        // 记录日志
+
+        // Log
         logger.info("User processed")
     }
-}
-"""
-    
-    # 检查是否有任何提供商配置
+    """
+
+    print("\nTest code:")
+    print(test_code)
+
+    # Check if any provider is configured
     providers = get_available_providers()
-    
     if not providers:
-        print("\n✗ 未配置任何 LLM 提供商，跳过测试")
-        print("   请设置 GITHUB_COPILOT_TOKEN、DEEPSEEK_API_KEY 或 OPENAI_API_KEY")
+        print("\n✗ No LLM providers configured, skipping test")
+        print("   Please set GITHUB_COPILOT_TOKEN, DEEPSEEK_API_KEY, or OPENAI_API_KEY")
         return
-    
-    # 尝试使用第一个可用提供商
+
+    # Try using the first available provider
     provider_id = providers[0][0]
-    print(f"\n✓ 使用提供商: {provider_id}")
-    
+
+    print(f"\n✓ Using provider: {provider_id}")
+
     try:
-        # 由于需要真实 API key，这里只是演示调用方式
-        # 实际使用时取消注释下面这行:
+        # Since real API keys are needed, this is just a demonstration of the call method
+
+        # Uncomment below line for actual usage:
         # result = semantic_review(test_code, provider=provider_id)
-        print("   (跳过实际 API 调用，需要有效的 API key)")
-        print("   调用方式: semantic_review(code, provider='github_copilot')")
+
+        print("   (Skipping actual API call, needs valid API key)")
+        print("   Call method: semantic_review(code, provider='github_copilot')")
     except Exception as e:
-        print(f"   ✗ 调用失败: {e}")
+        print(f"   ✗ Call failed: {e}")
 
 
 def print_setup_guide():
-    """打印设置指南"""
+    """Print setup guide"""
     print("\n" + "=" * 60)
-    print("GitHub Copilot 设置指南")
+    print("GitHub Copilot Setup Guide")
     print("=" * 60)
-    
     guide = """
-1. 获取 GitHub Copilot Token:
-   - 访问 https://github.com/settings/tokens
-   - 点击 "Generate new token (classic)"
-   - 勾选 'copilot' scope
-   - 生成并复制 token (格式: ghp_xxx)
+1. Get GitHub Copilot Token:
 
-2. 配置环境变量:
-   复制 .env.example 为 .env:
+   - Visit https://github.com/settings/tokens
+
+   - Click "Generate new token (classic)"
+
+   - Check 'copilot' scope
+
+   - Generate and copy token (format: ghp_xxx)
+
+2. Configure Environment Variables:
+
+   Copy .env.example to .env:
    $ cp .env.example .env
-   
-   编辑 .env 文件，添加:
-   GITHUB_COPILOT_TOKEN=ghp_your_token_here
-   LLM_PROVIDER=github_copilot
 
-3. 验证配置:
+   Edit .env file, add:
+   GITHUB_COPILOT_TOKEN=ghp_your_token_here
+
+3. Verify Configuration:
    $ python test_copilot_support.py
 
-4. 使用:
-   - 设置 LLM_PROVIDER=github_copilot 指定使用 Copilot
-   - 或保持 LLM_PROVIDER=auto 自动检测
+4. Usage:
+
+   - Set LLM_PROVIDER=github_copilot to use Copilot
+
+   - Or keep LLM_PROVIDER=auto for auto-detection
 """
     print(guide)
 
 
 if __name__ == "__main__":
     print("\n" + "=" * 60)
-    print("Review Skill - GitHub Copilot 支持测试")
+    print("Review Skill - GitHub Copilot Support Test")
     print("=" * 60)
-    
     try:
-        # 运行测试
+        # Run tests
         test_provider_detection()
+        print("\n" + "=" * 60)
         test_provider_validation()
         test_config_integration()
         test_semantic_review_mock()
-        print_setup_guide()
-        
+
         print("\n" + "=" * 60)
-        print("测试完成!")
+        print("Test completed!")
         print("=" * 60)
-        
     except Exception as e:
-        print(f"\n✗ 测试失败: {e}")
+        print(f"\n✗ Test failed: {e}")
         import traceback
         traceback.print_exc()
-        sys.exit(1)
