@@ -64,7 +64,7 @@ class GitDiffParser:
             # Detect hunk start
             elif line.startswith('@@') and current_file:
                 # Format: @@ -old_start,old_len +new_start,new_len @@
-                hunk_match = re.search(r'@@ -(\d+)(?,(\d+))? \+(\d+)(?,(\d+))? @@', line)
+                hunk_match = re.search(r'@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@', line)
                 if hunk_match:
                     old_start = int(hunk_match.group(1))
                     old_len = int(hunk_match.group(2) or 1)
