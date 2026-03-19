@@ -52,6 +52,6 @@ fun GreetingPreview() {
 
 fun testIntent(context: Context) {
     context.startActivity(
-        Intent()
+        Intent(), Bundle()
     )
 }

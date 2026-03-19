@@ -158,6 +158,13 @@ class EnhancedReviewRunner:
             self.registry.register(provides_without_scope_rule)
         except ImportError as e:
             logger.warning(f"Dagger2 rules import failed: {e}")
+
+        # Register Android-specific rules
+        try:
+            from ..rules.android_rules import startactivity_without_trycatch_rule
+            self.registry.register(startactivity_without_trycatch_rule)
+        except ImportError as e:
+            logger.warning(f"Android rules import failed: {e}")
     
     def _register_legacy_rules(self):
         """Register old rule adapters (disabled, legacy_adapter removed)"""
