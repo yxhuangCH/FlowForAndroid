@@ -12,7 +12,7 @@ from ..adapters.decorators import rule
     rule_id="startactivity_without_trycatch",
     name="startActivity should be wrapped in try-catch",
     description="startActivity may throw ActivityNotFoundException when the target activity is not found. It should be wrapped in try-catch block.",
-    severity=RuleSeverity.MAJOR,
+    severity=RuleSeverity.BLOCKER,
     category=RuleCategory.CORRECTNESS,
     tags=["android", "kotlin", "startActivity", "exception-handling"],
     suggested_fix="Wrap startActivity call in try-catch block to handle ActivityNotFoundException",
@@ -49,7 +49,7 @@ def startactivity_without_trycatch_rule(context: RuleContext) -> List[Finding]:
                 findings.append(Finding(
                     rule_id="startactivity_without_trycatch",
                     message="startActivity should be wrapped in try-catch to handle ActivityNotFoundException",
-                    severity=RuleSeverity.MAJOR,
+                    severity=RuleSeverity.BLOCKER,
                     file_path=context.file_path,
                     line_number=i,
                     code_snippet=line.strip(),
