@@ -793,10 +793,10 @@ def review():
                         for item in analysis[json_key]:
                             violations.append({
                                 'severity': item.get('severity', 'low').lower(),
-                                'issue': item.get('issue', ''),
-                                'location': item.get('location', ''),
-                                'description': item.get('description', ''),
-                                'suggestion': item.get('suggestion', '')
+                                'issue': item.get('issue', item.get('title', '')),
+                                'location': item.get('location', item.get('file', '')),
+                                'description': item.get('description', item.get('details', '')),
+                                'suggestion': item.get('suggestion', item.get('recommendation', ''))
                             })
                         if violations:
                             llm_semantic_results.append({

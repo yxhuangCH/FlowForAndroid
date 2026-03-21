@@ -721,12 +721,15 @@ class HTMLReportGenerator:
                         violations = []
                         for item in analysis[json_key]:
                             if isinstance(item, dict):
+                                # Support both old and new field naming conventions
+                                # Old: location, description, suggestion
+                                # New: file, issue, details
                                 violations.append({
                                     'severity': item.get('severity', 'low').lower(),
-                                    'issue': item.get('issue', ''),
-                                    'location': item.get('location', ''),
-                                    'description': item.get('description', ''),
-                                    'suggestion': item.get('suggestion', '')
+                                    'issue': item.get('issue', item.get('title', 'Unknown Issue')),
+                                    'location': item.get('location', item.get('file', '')),
+                                    'description': item.get('description', item.get('details', '')),
+                                    'suggestion': item.get('suggestion', item.get('recommendation', ''))
                                 })
                         if violations:
                             converted_results.append({
