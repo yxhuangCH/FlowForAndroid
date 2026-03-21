@@ -104,8 +104,7 @@ class ReviewConfig:
                 self.config['llm_model'] = llm_model
                     
         except Exception as e:
-            from i18n import _
-            print(_("⚠ Failed to load configuration from environment: {error}").format(error=e))
+            print(f"⚠ Failed to load configuration from environment: {e}")
 
     def get_llm_provider(self) -> str:
         """Get LLM provider configuration"""
