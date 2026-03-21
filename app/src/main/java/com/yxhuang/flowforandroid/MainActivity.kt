@@ -1,7 +1,5 @@
 package com.yxhuang.flowforandroid
 
-import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,7 +12,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.yxhuang.flowforandroid.ui.theme.FlowForAndroidTheme
-import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,26 +47,3 @@ fun GreetingPreview() {
     }
 }
 
-fun testIntent(context: Context) {
-    context.startActivity(
-        Intent(), Bundle()
-    )
-}
-
-fun testIntent2(context: Context) {
-    context.startActivity(
-        Intent(), Bundle()
-    )
-}
-
-fun testIntent3(context: Context) {
-    context.startActivity(
-        Intent(), Bundle()
-    )
-}
-
-fun testIntent4(context: Context) {
-    context.startActivity(
-        Intent(), Bundle()
-    )
-}

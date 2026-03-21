@@ -113,13 +113,17 @@ def _review_with_new_engine(diff: str, config) -> Dict:
         # Calculate average score
         score = total_score // file_count if file_count > 0 else 100
         
+        # Check for block issues (blocker severity)
+        block_issues = [f for f in all_findings if f.get("severity") == "blocker"]
+        
         min_score = config.get_min_score_threshold()
-        block_pr = score < min_score or any(f.get("severity") == "critical" for f in all_findings)
+        block_pr = score < min_score or any(f.get("severity") == "critical" for f in all_findings) or len(block_issues) > 0
         
         return {
             "findings": all_findings,
             "score": max(0, score),
             "block_pr": block_pr,
+            "block_issues": block_issues,
             "engine": "new",
             "file_count": file_count,
             "engine_info": runner.get_engine_info()
@@ -165,13 +169,17 @@ def _review_with_old_engine(diff: str, config) -> Dict:
         # Calculate average score
         score = total_score // file_count if file_count > 0 else 100
         
+        # Check for block issues (blocker severity)
+        block_issues = [f for f in all_findings if f.get("severity") == "blocker"]
+        
         min_score = config.get_min_score_threshold()
-        block_pr = score < min_score or any(f.get("severity") == "critical" for f in all_findings)
+        block_pr = score < min_score or any(f.get("severity") == "critical" for f in all_findings) or len(block_issues) > 0
         
         return {
             "findings": all_findings,
             "score": max(0, score),
             "block_pr": block_pr,
+            "block_issues": block_issues,
             "engine": "fallback_new_engine",
             "file_count": file_count,
             "engine_info": runner.get_engine_info()
@@ -185,6 +193,7 @@ def _review_with_old_engine(diff: str, config) -> Dict:
             "findings": [],
             "score": 100,
             "block_pr": False,
+            "block_issues": [],
             "engine": "empty_fallback"
         }
 
@@ -277,7 +286,8 @@ def review():
                 diff_data=diff_data,
                 findings=result["findings"],  # Use all findings (including LLM)
                 score=result["score"],
-                output_path=str(html_report_path)
+                output_path=str(html_report_path),
+                block_issues=result.get("block_issues", [])
             )
             
             print(_("\n📊 HTML report generated: {path}").format(path=report_path))

@@ -201,9 +201,12 @@ class HTMLReportGenerator:
         diff_data: List[Dict[str, Any]],
         findings: List[Dict[str, Any]],
         score: int,
-        output_path: str = 'code_review_report.html'
+        output_path: str = 'code_review_report.html',
+        block_issues: List[Dict[str, Any]] = None
     ) -> str:
         """Generates HTML report"""
+        
+        block_issues = block_issues or []
         
         # Group files by package
         files_by_package = {}
@@ -235,7 +238,8 @@ class HTMLReportGenerator:
             findings_by_file, 
             score,
             len(findings),
-            report_dir
+            report_dir,
+            block_issues
         )
         
         # Write file
@@ -321,9 +325,12 @@ class HTMLReportGenerator:
         findings_by_file: Dict[str, List[Dict[str, Any]]],
         score: int,
         total_findings: int,
-        report_dir: str = ''
+        report_dir: str = '',
+        block_issues: List[Dict[str, Any]] = None
     ) -> str:
         """Generates HTML content"""
+        
+        block_issues = block_issues or []
         
         # Calculate base path for refer files
         if report_dir:
@@ -338,6 +345,7 @@ class HTMLReportGenerator:
             'minor': '#ffc107',     # Yellow
             'warning': '#17a2b8',   # Cyan
             'info': '#28a745',      # Green
+            'blocker': '#8b0000',   # Dark Red for blocker
         }
         
         # Score color
@@ -557,6 +565,41 @@ class HTMLReportGenerator:
             margin-top: 2rem;
         }}
         
+        .block-issues-panel {{
+            background: linear-gradient(135deg, #8b0000 0%, #dc143c 100%);
+            border-radius: 6px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }}
+        
+        .block-issues-panel h3 {{
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }}
+        
+        .block-issue-item {{
+            padding: 1rem;
+            border-left: 4px solid #ff6b6b;
+            margin-bottom: 1rem;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 4px;
+            color: #333;
+        }}
+        
+        .block-issue-severity {{
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            background-color: #8b0000;
+            color: white;
+            margin-right: 0.5rem;
+        }}
+        
         .finding-item {{
             padding: 1rem;
             border-left: 4px solid;
@@ -638,10 +681,12 @@ class HTMLReportGenerator:
                 <div class="summary-label">Issues Found</div>
             </div>
             <div class="summary-item">
-                <div class="summary-number">{len([f for f in findings_by_file.values() if any(finding.get('severity') == 'critical' for finding in f)])}</div>
-                <div class="summary-label">Critical Issues</div>
+                <div class="summary-number" style="color: {'#dc3545' if len(block_issues) > 0 else '#667eea'};">{len(block_issues)}</div>
+                <div class="summary-label">{'🚫 Block Issues' if len(block_issues) > 0 else 'Block Issues'}</div>
             </div>
         </div>
+        
+        {HTMLReportGenerator._generate_block_issues_section(block_issues)}
         
         {HTMLReportGenerator._generate_package_sections(files_by_package, findings_by_file)}
         
@@ -871,6 +916,44 @@ class HTMLReportGenerator:
         except Exception as e:
             print(f"⚠ Failed to read refer file {refer_file_path}: {e}")
             return None
+    
+    @staticmethod
+    def _generate_block_issues_section(block_issues: List[Dict[str, Any]]) -> str:
+        """Generates HTML for block issues section"""
+        if not block_issues:
+            return ''
+        
+        block_issues_html = '''
+        <div class="block-issues-panel">
+            <h3>🚫 Block Issues (Must Fix Before Merge)</h3>
+            <p style="margin-bottom: 1rem; opacity: 0.9;">The following issues will block PR merge. Please fix them immediately.</p>
+        '''
+        
+        for block_issue in block_issues:
+            rule = block_issue.get('rule', 'unknown')
+            message = block_issue.get('message', '')
+            file_path = block_issue.get('file_path', block_issue.get('file', 'Unknown file'))
+            line_number = block_issue.get('line_number', '')
+            code_snippet = block_issue.get('code_snippet', '')
+            suggestion = block_issue.get('suggestion', '')
+            
+            line_info = f" (Line {line_number})" if line_number else ''
+            
+            block_issues_html += f'''
+            <div class="block-issue-item">
+                <div>
+                    <span class="block-issue-severity">BLOCKER</span>
+                    <span class="finding-rule" style="color: #8b0000;">{rule}</span>
+                    <span style="color: #6c757d; font-size: 0.9rem;"> - {file_path}{line_info}</span>
+                </div>
+                <div class="finding-message" style="margin-top: 0.5rem; color: #333;">{message}</div>
+                {f'<div style="margin-top: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; font-family: monospace; font-size: 0.85rem; color: #666;"><strong>Code:</strong> {code_snippet}</div>' if code_snippet else ''}
+                {f'<div style="margin-top: 0.5rem; padding: 0.5rem; background: #e7f3ff; border-radius: 4px; font-size: 0.9rem; color: #0066cc;"><strong>Suggestion:</strong> {suggestion}</div>' if suggestion else ''}
+            </div>
+            '''
+        
+        block_issues_html += '</div>'
+        return block_issues_html
     
     @staticmethod
     def _generate_findings_section(findings_by_file, severity_colors, report_dir=''):
