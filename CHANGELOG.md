@@ -2,6 +2,7 @@
 
 ## Unreleased
 ### Added
+- Add android rule 
 ### Changed
 - Covert Chinese to English
 ### Removed
