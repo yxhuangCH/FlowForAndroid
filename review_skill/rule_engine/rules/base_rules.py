@@ -17,7 +17,7 @@ class NoGlobalScopeRule(Rule):
             id="no_globalscope",
             name="Prohibit GlobalScope usage",
             description="GlobalScope.launch may cause memory leaks, should use lifecycle-aware coroutine scopes",
-            severity=RuleSeverity.CRITICAL,
+            severity=RuleSeverity.BLOCKER,
             category=RuleCategory.LIFECYCLE,
             tags=["android", "kotlin", "coroutine", "lifecycle"],
             weight=1.5,
