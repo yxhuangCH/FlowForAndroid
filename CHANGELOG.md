@@ -2,6 +2,12 @@
 
 ## Unreleased
 ### Added
+### Changed
+### Removed
+### Fixed
+
+## v1.1.3(2026.03.21)
+### Added
 - Add android rule 
 ### Changed
 - Covert Chinese to English
