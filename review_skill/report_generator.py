@@ -500,9 +500,26 @@ class HTMLReportGenerator:
         return html
     
     @staticmethod
+    def _normalize_path(path: str) -> str:
+        """Normalizes file path for consistent comparison"""
+        if not path:
+            return path
+        # Remove leading slash and normalize
+        path = path.lstrip('/')
+        # Convert backslash to forward slash
+        path = path.replace('\\', '/')
+        return path
+    
+    @staticmethod
     def _generate_package_sections(files_by_package, findings_by_file):
         """Generates HTML for package and file sections"""
         sections = []
+        
+        # Normalize findings_by_file keys for matching
+        normalized_findings = {}
+        for key, value in findings_by_file.items():
+            normalized_key = HTMLReportGenerator._normalize_path(key)
+            normalized_findings[normalized_key] = value
         
         for package, files in sorted(files_by_package.items()):
             package_html = f'''
@@ -514,7 +531,8 @@ class HTMLReportGenerator:
             
             for file_data in files:
                 file_path = file_data['new_path']
-                file_findings = findings_by_file.get(file_path, [])
+                normalized_file_path = HTMLReportGenerator._normalize_path(file_path)
+                file_findings = normalized_findings.get(normalized_file_path, [])
                 
                 code_lines = []
                 current_line = 1
@@ -533,10 +551,26 @@ class HTMLReportGenerator:
                         
                         line_findings = []
                         for finding in file_findings:
+                            # Skip LLM-related findings - they are displayed separately
                             rule = finding.get('rule', '')
-                            if rule == 'no_globalscope' and 'GlobalScope' in content:
+                            if rule in HTMLReportGenerator.LLM_RULE_NAMES:
+                                continue
+                            
+                            # Method 1: Match by line number (most accurate)
+                            finding_line = finding.get('line_number')
+                            if finding_line and str(current_line) == str(finding_line):
+                                line_findings.append(finding)
+                            # Method 2: Match by code snippet content
+                            elif finding.get('code_snippet') and finding.get('code_snippet') in content:
+                                line_findings.append(finding)
+                            # Method 3: Match by keywords (fallback for specific rules)
+                            elif rule == 'no_globalscope' and 'GlobalScope' in content:
                                 line_findings.append(finding)
                             elif rule == 'collect_without_repeat' and 'collect' in content and 'repeatOnLifecycle' not in content:
+                                line_findings.append(finding)
+                            elif rule == 'startactivity_without_trycatch' and 'startActivity' in content:
+                                line_findings.append(finding)
+                            elif 'startActivity' in finding.get('message', '') and 'startActivity' in content:
                                 line_findings.append(finding)
                         
                         code_lines.append({
