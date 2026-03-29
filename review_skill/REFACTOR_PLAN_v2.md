@@ -510,16 +510,21 @@ class TestFullPipeline:
 ### Week 1: AST引擎开发
 
 #### Day 1-2: 基础架构
-- [ ] 创建目录结构
-- [ ] 集成tree-sitter-kotlin
-- [ ] 实现AST解析器基础
-- [ ] 编写基础测试
+- [x] 创建目录结构 (ast_engine/, cache/, incremental/, legacy/)
+- [x] 实现AST解析器基础 (parser_v2.py - 纯Python实现，无需tree-sitter)
+- [x] 编写基础测试 (test_parser_v2.py, test_ast_engine.py)
+- [ ] ~~集成tree-sitter-kotlin~~ (改用纯Python实现，已跳过)
 
 #### Day 3-4: AST规则系统
-- [ ] 实现AST规则基类
-- [ ] 迁移现有规则到AST版本
-- [ ] 编写Compose规则集
-- [ ] 规则单元测试
+- [x] 实现AST规则基类 (base_ast_rule.py - 含Finding、RuleRegistry等)
+- [x] 迁移现有规则到AST版本 (coroutine_rules.py - 6条规则)
+- [x] 编写Compose规则集 (compose_rules.py - 6条规则)
+- [x] 规则单元测试 (test_ast_rules.py - 8个测试全部通过)
+
+**已注册规则统计:**
+- 协程规则: 6条 (AST-COROUTINE-001~006)
+- Compose规则: 6条 (AST-COMPOSE-001~006)
+- 总计: 12条规则
 
 #### Day 5-7: 集成与测试
 - [ ] 集成AST引擎到主流程
