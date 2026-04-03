@@ -27,6 +27,16 @@ python3 review.py --version
 # 应该显示版本信息，如：review_skill v1.0.0
 ```
 
+### 步骤4：安装 Git Hook（可选，团队使用时推荐）
+> ⚠️ **注意**: `.git/hooks/` 目录是本地目录，**不会被 git 追踪或包含在仓库中**。因此克隆仓库后需要手动运行安装脚本。
+
+```bash
+chmod +x install-git-hook.sh
+./install-git-hook.sh
+```
+
+安装后，每次 `git push` 会自动执行代码审查。
+
 ## 🔧 最简配置
 
 ### 基本配置（可选）

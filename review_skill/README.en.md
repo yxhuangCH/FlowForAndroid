@@ -331,6 +331,64 @@ MIT License
 
 ---
 
+## Git Hook Integration
+
+### Install Pre-Push Hook
+
+> ⚠️ **Note**: The `.git/hooks/` directory is a **local-only** directory and is **NOT tracked by git or included in the repository**. Therefore:
+> - After cloning the repository for the first time, you need to manually run the installation script
+> - Each team member needs to run the installation script on their own machine
+
+After installation, every `git push` will automatically execute code review, and push will be blocked if the review fails:
+
+```bash
+cd review_skill
+chmod +x install-git-hook.sh
+./install-git-hook.sh
+```
+
+### Skip Code Review
+
+There are four ways to skip the pre-push check:
+
+**Method 1: git push-skip-review (recommended)**
+```bash
+# Skip review and push directly
+git push-skip-review
+
+# Supports all git push arguments
+git push-skip-review origin main
+git push-skip-review --force-with-lease origin feature-branch
+```
+
+**Method 2: Environment variable (temporary skip)**
+```bash
+SKIP_REVIEW=1 git push
+```
+
+**Method 3: Git config (permanent disable)**
+```bash
+# Disable
+git config hooks.skip-review true
+
+# Re-enable
+git config hooks.skip-review false
+```
+
+**Method 4: --no-verify (skip all hooks, not recommended)**
+```bash
+git push --no-verify
+```
+
+### How the Hook Works
+
+1. When `git push` is executed, the pre-push hook is triggered
+2. Automatically runs `python3 review.py` for code review
+3. If review fails (exit code ≠ 0), push is rejected
+4. Shows skip hint, user can choose to skip or fix code
+
+---
+
 ## Support
 
 - **Documentation**: See docs/ directory

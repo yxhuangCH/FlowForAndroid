@@ -43,6 +43,42 @@ The tool outputs:
 3. Detailed scores and issue lists
 4. PR blocking determination
 
+### 4. Install Git Hook (Optional, Recommended for Team Usage)
+
+> ⚠️ **Note**: The `.git/hooks/` directory is a **local-only** directory and is **NOT tracked by git or included in the repository**. Therefore:
+> - After cloning the repository for the first time, you need to manually run the installation script
+> - Each team member needs to run the installation script on their own machine
+
+```bash
+cd review_skill
+chmod +x install-git-hook.sh
+./install-git-hook.sh
+```
+
+After installation, every `git push` will automatically execute code review, and push will be blocked if the review fails.
+
+#### Ways to Skip Code Review
+
+**Method 1: git push-skip-review (recommended)**
+```bash
+git push-skip-review
+```
+
+**Method 2: Environment variable (temporary skip)**
+```bash
+SKIP_REVIEW=1 git push
+```
+
+**Method 3: Git config (permanent disable)**
+```bash
+git config hooks.skip-review true
+```
+
+**Method 4: --no-verify (skip all hooks, not recommended)**
+```bash
+git push --no-verify
+```
+
 ## Detailed Configuration
 
 ### Configuration File Structure
