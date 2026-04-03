@@ -38,20 +38,45 @@ class ComposeRememberRule(ASTBasedRule):
     def check(self, ast: ASTNode, file_path: str) -> List[Finding]:
         findings = []
         
-        # 查找所有调用表达式
-        calls = ast.find_all(NodeType.CALL_EXPRESSION)
+        # 获取源码用于字符串匹配
+        source_code = ast.text
         
-        for call in calls:
-            text = call.text
-            # 检查是否是remember调用
-            if "remember" in text:
-                # 检查是否包含mutableStateOf但没有正确处理
-                if "mutableStateOf" in text and "by remember" not in text:
+        # 查找所有函数声明
+        functions = ast.find_all(NodeType.FUNCTION_DECLARATION)
+        
+        for func in functions:
+            # 检查是否是Composable函数
+            start_line = func.range.start.line
+            end_line = func.range.end.line + 1
+            
+            lines = source_code.split('\n') if source_code else []
+            check_lines = lines[max(0, start_line-2):end_line]
+            check_source = '\n'.join(check_lines)
+            
+            is_composable = "@Composable" in check_source
+            
+            if is_composable:
+                # 获取函数源码
+                func_source = '\n'.join(lines[start_line:end_line])
+                
+                # 使用正则表达式检查：mutableStateOf是否在remember外部
+                # 模式: { mutableStateOf(...) } 表示在remember内部
+                import re
+                
+                # 检查是否有remember包裹mutableStateOf
+                has_remember_wrap = bool(re.search(r'remember\s*\{[^}]*mutableStateOf', func_source))
+                
+                # 检查是否有独立的mutableStateOf（不在remember中）
+                # 移除remember块后再检查
+                func_without_remember = re.sub(r'remember\s*\{[^}]*\}', '', func_source)
+                has_standalone_mutableState = 'mutableStateOf' in func_without_remember
+                
+                if has_standalone_mutableState and not has_remember_wrap:
                     findings.append(self.create_finding(
-                        node=call,
+                        node=func,
                         file_path=file_path,
-                        message="Compose remember使用：建议使用 'by remember { mutableStateOf(...) }' 语法",
-                        suggestion="使用委托属性语法：var state by remember { mutableStateOf(value) }"
+                        message="mutableStateOf缺少remember：直接使用会导致状态丢失",
+                        suggestion="使用 'var state by remember { mutableStateOf(...) }' 包装"
                     ))
         
         return findings
@@ -205,12 +230,12 @@ class ComposeModifierOrderRule(ASTBasedRule):
 
 
 @register_rule
-class ComposeStateHoistingRule(ASTBasedRule):
-    """检测状态提升问题"""
+class ComposeRememberMissingRule(ASTBasedRule):
+    """检测Compose remember缺失问题"""
     
     @property
     def rule_id(self) -> str:
-        return "AST-COMPOSE-005"
+        return "AST-COMPOSE-006"
     
     @property
     def rule_name(self) -> str:
@@ -231,22 +256,55 @@ class ComposeStateHoistingRule(ASTBasedRule):
     def check(self, ast: ASTNode, file_path: str) -> List[Finding]:
         findings = []
         
-        # 查找@Composable函数
+        # 获取源码用于字符串匹配
+        source_code = ast.text
+        
+        # 查找所有函数声明
         functions = ast.find_all(NodeType.FUNCTION_DECLARATION)
         
         for func in functions:
-            text = func.text
-            # 检查是否是Composable且包含内部状态
-            if "@Composable" in text:
-                # 检查是否有多个remember调用（可能表示状态应该提升）
-                remember_count = text.count("remember")
-                if remember_count >= 3:
-                    findings.append(self.create_finding(
-                        node=func,
-                        file_path=file_path,
-                        message=f"状态提升建议：函数包含 {remember_count} 个remember调用，考虑将状态提升到父级",
-                        suggestion="将状态提升到ViewModel或通过参数传入，使组件更可测试和复用"
-                    ))
+            # 检查是否是Composable函数
+            # 需要检查函数定义前的注解
+            # 使用源码范围来检查
+            start_line = func.range.start.line
+            end_line = func.range.end.line + 1
+            
+            # 获取函数及其前面的源码行（检查是否有@Composable注解）
+            lines = source_code.split('\n') if source_code else []
+            check_lines = lines[max(0, start_line-2):end_line]
+            check_source = '\n'.join(check_lines)
+            
+            is_composable = "@Composable" in check_source
+            
+            if is_composable:
+                # 查找函数内所有的调用表达式
+                calls = func.find_all(NodeType.CALL_EXPRESSION)
+                
+                has_remember = any("remember" in c.text for c in calls)
+                has_mutableState = any("mutableStateOf" in c.text for c in calls)
+                
+                if has_mutableState and not has_remember:
+                    for call in calls:
+                        if "mutableStateOf" in call.text:
+                            findings.append(self.create_finding(
+                                node=call,
+                                file_path=file_path,
+                                message="mutableStateOf缺少remember：直接使用会导致状态丢失",
+                                suggestion="使用 'var state by remember { mutableStateOf(...) }' 包装"
+                            ))
+                            break
+                
+                # 如果调用表达式为空，使用函数源码范围检查
+                if not calls:
+                    func_source = '\n'.join(lines[start_line:end_line])
+                    
+                    if "mutableStateOf" in func_source and "remember" not in func_source:
+                        findings.append(self.create_finding(
+                            node=func,
+                            file_path=file_path,
+                            message="mutableStateOf缺少remember：直接使用会导致状态丢失",
+                            suggestion="使用 'var state by remember { mutableStateOf(...) }' 包装"
+                        ))
         
         return findings
 
