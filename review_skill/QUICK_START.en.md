@@ -27,6 +27,16 @@ python3 review.py --version
 # Should display version info, e.g.: review_skill v1.0.0
 ```
 
+### Step 4: Install Git Hook (Optional, Recommended for Team Usage)
+> ⚠️ **Note**: The `.git/hooks/` directory is a **local-only** directory and is **NOT tracked by git or included in the repository**. Therefore, after cloning the repository, you need to manually run the installation script.
+
+```bash
+chmod +x install-git-hook.sh
+./install-git-hook.sh
+```
+
+After installation, every `git push` will automatically execute code review.
+
 ## 🔧 Minimal Configuration
 
 ### Basic Configuration (Optional)
