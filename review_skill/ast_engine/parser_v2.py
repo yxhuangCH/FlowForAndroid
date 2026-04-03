@@ -659,9 +659,10 @@ class KotlinParser:
         if self._match(TokenType.LT):
             self._skip_type_parameters()
         
-        # 主构造函数
+        # 主构造函数参数（可能包含属性声明）
+        constructor_properties = []
         if self._check(TokenType.LPAREN):
-            self._skip_balanced('(', ')')
+            constructor_properties = self._parse_constructor_parameters()
         
         # 继承
         if self._match(TokenType.COLON):
@@ -676,6 +677,11 @@ class KotlinParser:
         if self._check(TokenType.LBRACE):
             body = self._parse_class_body()
         
+        # 合并构造函数属性和类体
+        all_children = constructor_properties
+        if body:
+            all_children.extend(body)
+        
         end_token = self._peek(-1)
         end_pos = self._get_source_position(end_token)
         end_pos.offset += len(end_token.value)
@@ -687,13 +693,71 @@ class KotlinParser:
             node_type=node_type,
             text=f"{start_token.value} {class_name}",
             range=SourceRange(start=start_pos, end=end_pos),
-            children=body or [],
+            children=all_children,
             metadata={
                 'class_name': class_name,
                 'is_interface': is_interface,
                 'modifiers': modifiers
             }
         )
+    
+    def _parse_constructor_parameters(self) -> List[ASTNode]:
+        """解析主构造函数参数，提取属性声明"""
+        self._advance()  # consume (
+        properties = []
+        
+        while not self._check(TokenType.RPAREN) and not self._is_at_end():
+            # 跳过注解
+            self._match(TokenType.AT)
+            
+            # 解析修饰符
+            modifiers = self._parse_modifiers()
+            
+            # 检查是否是 val/var
+            is_val = self._check(TokenType.VAL)
+            is_var = self._check(TokenType.VAR)
+            
+            if is_val or is_var:
+                self._advance()  # consume val/var
+                
+                # 属性名
+                prop_name = ""
+                if self._check(TokenType.IDENTIFIER):
+                    prop_name = self._advance().value
+                
+                # 类型
+                if self._match(TokenType.COLON):
+                    while not self._check(TokenType.COMMA) and not self._check(TokenType.RPAREN) and not self._is_at_end():
+                        self._advance()
+                
+                # 创建属性节点
+                if prop_name:
+                    start_token = self._peek(-1)
+                    start_pos = self._get_source_position(start_token)
+                    end_token = self._peek(-1)
+                    end_pos = self._get_source_position(end_token)
+                    
+                    prop_node = ASTNode(
+                        node_type=NodeType.PROPERTY_DECLARATION,
+                        text=f"{'var' if is_var else 'val'} {prop_name}",
+                        range=SourceRange(start=start_pos, end=end_pos),
+                        children=[],
+                        metadata={
+                            'property_name': prop_name,
+                            'is_mutable': is_var,
+                            'is_constructor_param': True,
+                            'modifiers': modifiers
+                        }
+                    )
+                    properties.append(prop_node)
+            
+            if not self._check(TokenType.COMMA) and not self._check(TokenType.RPAREN):
+                self._advance()
+            else:
+                self._match(TokenType.COMMA)
+        
+        self._match(TokenType.RPAREN)  # consume )
+        return properties
     
     def _parse_object_declaration(self, modifiers: List[str], annotations: List[ASTNode]) -> ASTNode:
         """解析对象声明"""
@@ -851,8 +915,10 @@ class KotlinParser:
         )
     
     def _parse_class_body(self) -> List[ASTNode]:
-        """解析类体"""
-        self._match(TokenType.LBRACE)  # consume {
+        """解析类体 - 改进版"""
+        if not self._check(TokenType.LBRACE):
+            return []
+        self._advance()  # consume {
         
         members = []
         while not self._check(TokenType.RBRACE) and not self._is_at_end():
@@ -866,22 +932,32 @@ class KotlinParser:
             
             # 成员声明
             if self._check(TokenType.FUN):
-                members.append(self._parse_function_declaration(modifiers, annotations))
+                node = self._parse_function_declaration(modifiers, annotations)
+                if node:
+                    members.append(node)
             elif self._check(TokenType.VAL) or self._check(TokenType.VAR):
-                members.append(self._parse_property_declaration(modifiers, annotations))
+                node = self._parse_property_declaration(modifiers, annotations)
+                if node:
+                    members.append(node)
             elif self._check(TokenType.CLASS) or self._check(TokenType.INTERFACE):
-                members.append(self._parse_class_declaration(modifiers, annotations))
+                node = self._parse_class_declaration(modifiers, annotations)
+                if node:
+                    members.append(node)
             elif self._check(TokenType.OBJECT):
-                members.append(self._parse_object_declaration(modifiers, annotations))
+                node = self._parse_object_declaration(modifiers, annotations)
+                if node:
+                    members.append(node)
             elif self._check(TokenType.COMPANION):
-                members.append(self._parse_object_declaration(modifiers, annotations))
+                node = self._parse_object_declaration(modifiers, annotations)
+                if node:
+                    members.append(node)
             elif self._check(TokenType.INIT):
                 # init块
                 self._advance()  # init
                 if self._check(TokenType.LBRACE):
                     self._parse_block()
             else:
-                # 跳过未知内容
+                # 跳过未知内容（包括构造函数参数等）
                 if self.pos == saved_pos:
                     self._advance()
         
@@ -889,19 +965,348 @@ class KotlinParser:
         return members
     
     def _parse_block(self) -> List[ASTNode]:
-        """解析代码块"""
-        self._match(TokenType.LBRACE)  # consume {
-        
+        """解析代码块 - 改进版，解析函数体内的语句"""
+        start_brace = self._advance()  # consume {
         statements = []
+        
         while not self._check(TokenType.RBRACE) and not self._is_at_end():
-            # 简化：跳过直到 }
-            if self._match(TokenType.LBRACE):
-                self._skip_balanced('{', '}')
-            else:
-                self._advance()
+            stmt = self._parse_statement()
+            if stmt:
+                statements.append(stmt)
         
         self._match(TokenType.RBRACE)  # consume }
         return statements
+    
+    def _parse_statement(self) -> Optional[ASTNode]:
+        """解析语句"""
+        start_token = self._peek()
+        start_pos = self._get_source_position(start_token)
+        
+        # 跳过分号
+        if self._match(TokenType.SEMICOLON):
+            return None
+        
+        # 代码块
+        if self._check(TokenType.LBRACE):
+            return self._parse_block_node()
+        
+        # if/when/for/while/try 等控制流
+        if self._check(TokenType.IF):
+            return self._parse_if_statement()
+        if self._check(TokenType.WHEN):
+            return self._parse_when_statement()
+        if self._check(TokenType.FOR):
+            return self._parse_for_statement()
+        if self._check(TokenType.WHILE):
+            return self._parse_while_statement()
+        if self._check(TokenType.TRY):
+            return self._parse_try_statement()
+        if self._check(TokenType.RETURN):
+            return self._parse_return_statement()
+        
+        # 变量声明
+        if self._check(TokenType.VAL) or self._check(TokenType.VAR):
+            return self._parse_local_variable()
+        
+        # 表达式语句（包括调用表达式）
+        return self._parse_expression_statement()
+    
+    def _parse_block_node(self) -> ASTNode:
+        """解析代码块为节点"""
+        start_token = self._peek()
+        start_pos = self._get_source_position(start_token)
+        
+        statements = self._parse_block()
+        
+        end_token = self._peek(-1)
+        end_pos = self._get_source_position(end_token)
+        end_pos.offset += len(end_token.value)
+        
+        return ASTNode(
+            node_type=NodeType.BLOCK,
+            text="{...}",
+            range=SourceRange(start=start_pos, end=end_pos),
+            children=statements
+        )
+    
+    def _parse_if_statement(self) -> ASTNode:
+        """解析if语句"""
+        start_token = self._advance()  # if
+        start_pos = self._get_source_position(start_token)
+        
+        # 条件
+        if self._match(TokenType.LPAREN):
+            self._skip_balanced('(', ')')
+        
+        # then分支
+        then_branch = None
+        if self._check(TokenType.LBRACE):
+            then_branch = self._parse_block_node()
+        
+        # else分支
+        else_branch = None
+        if self._match(TokenType.ELSE):
+            if self._check(TokenType.LBRACE):
+                else_branch = self._parse_block_node()
+            elif self._check(TokenType.IF):
+                else_branch = self._parse_if_statement()
+        
+        end_token = self._peek(-1)
+        end_pos = self._get_source_position(end_token)
+        
+        return ASTNode(
+            node_type=NodeType.IF_STATEMENT,
+            text="if {...}",
+            range=SourceRange(start=start_pos, end=end_pos),
+            children=[c for c in [then_branch, else_branch] if c]
+        )
+    
+    def _parse_when_statement(self) -> ASTNode:
+        """解析when语句"""
+        start_token = self._advance()  # when
+        start_pos = self._get_source_position(start_token)
+        
+        # 条件
+        if self._match(TokenType.LPAREN):
+            self._skip_balanced('(', ')')
+        
+        # when体
+        if self._check(TokenType.LBRACE):
+            self._skip_balanced('{', '}')
+        
+        end_token = self._peek(-1)
+        end_pos = self._get_source_position(end_token)
+        
+        return ASTNode(
+            node_type=NodeType.WHEN_STATEMENT,
+            text="when {...}",
+            range=SourceRange(start=start_pos, end=end_pos),
+            children=[]
+        )
+    
+    def _parse_for_statement(self) -> ASTNode:
+        """解析for语句"""
+        start_token = self._advance()  # for
+        start_pos = self._get_source_position(start_token)
+        
+        if self._match(TokenType.LPAREN):
+            self._skip_balanced('(', ')')
+        
+        if self._check(TokenType.LBRACE):
+            self._parse_block()
+        
+        end_token = self._peek(-1)
+        end_pos = self._get_source_position(end_token)
+        
+        return ASTNode(
+            node_type=NodeType.FOR_STATEMENT,
+            text="for {...}",
+            range=SourceRange(start=start_pos, end=end_pos),
+            children=[]
+        )
+    
+    def _parse_while_statement(self) -> ASTNode:
+        """解析while语句"""
+        start_token = self._advance()  # while
+        start_pos = self._get_source_position(start_token)
+        
+        if self._match(TokenType.LPAREN):
+            self._skip_balanced('(', ')')
+        
+        if self._check(TokenType.LBRACE):
+            self._parse_block()
+        
+        end_token = self._peek(-1)
+        end_pos = self._get_source_position(end_token)
+        
+        return ASTNode(
+            node_type=NodeType.WHILE_STATEMENT,
+            text="while {...}",
+            range=SourceRange(start=start_pos, end=end_pos),
+            children=[]
+        )
+    
+    def _parse_try_statement(self) -> ASTNode:
+        """解析try语句"""
+        start_token = self._advance()  # try
+        start_pos = self._get_source_position(start_token)
+        
+        if self._check(TokenType.LBRACE):
+            self._parse_block()
+        
+        # catch块
+        while self._check(TokenType.CATCH):
+            self._advance()
+            if self._match(TokenType.LPAREN):
+                self._skip_balanced('(', ')')
+            if self._check(TokenType.LBRACE):
+                self._parse_block()
+        
+        # finally块
+        if self._match(TokenType.FINALLY):
+            if self._check(TokenType.LBRACE):
+                self._parse_block()
+        
+        end_token = self._peek(-1)
+        end_pos = self._get_source_position(end_token)
+        
+        return ASTNode(
+            node_type=NodeType.TRY_STATEMENT,
+            text="try {...}",
+            range=SourceRange(start=start_pos, end=end_pos),
+            children=[]
+        )
+    
+    def _parse_return_statement(self) -> ASTNode:
+        """解析return语句"""
+        start_token = self._advance()  # return
+        start_pos = self._get_source_position(start_token)
+        
+        # 返回值表达式
+        if not self._check(TokenType.SEMICOLON) and not self._check(TokenType.RBRACE):
+            self._skip_expression()
+        
+        end_token = self._peek(-1)
+        end_pos = self._get_source_position(end_token)
+        
+        return ASTNode(
+            node_type=NodeType.RETURN_STATEMENT,
+            text="return",
+            range=SourceRange(start=start_pos, end=end_pos),
+            children=[]
+        )
+    
+    def _parse_local_variable(self) -> ASTNode:
+        """解析局部变量声明"""
+        start_token = self._advance()  # val/var
+        start_pos = self._get_source_position(start_token)
+        
+        is_mutable = start_token.type == TokenType.VAR
+        
+        # 变量名
+        var_name = ""
+        if self._check(TokenType.IDENTIFIER):
+            var_name = self._advance().value
+        
+        # 类型
+        if self._match(TokenType.COLON):
+            self._skip_type()
+        
+        # 初始值
+        if self._match(TokenType.ASSIGN):
+            self._skip_expression()
+        
+        end_token = self._peek(-1)
+        end_pos = self._get_source_position(end_token)
+        
+        return ASTNode(
+            node_type=NodeType.LOCAL_VARIABLE,
+            text=f"{start_token.value} {var_name}",
+            range=SourceRange(start=start_pos, end=end_pos),
+            children=[],
+            metadata={'variable_name': var_name, 'is_mutable': is_mutable}
+        )
+    
+    def _parse_expression_statement(self) -> Optional[ASTNode]:
+        """解析表达式语句 - 重点识别调用表达式"""
+        start_token = self._peek()
+        start_pos = self._get_source_position(start_token)
+        
+        # 尝试解析调用表达式
+        call_expr = self._try_parse_call_expression()
+        if call_expr:
+            return call_expr
+        
+        # 其他表达式，跳过
+        if not self._check(TokenType.RBRACE):
+            self._skip_until_statement_end()
+        
+        return None
+    
+    def _try_parse_call_expression(self) -> Optional[ASTNode]:
+        """尝试解析调用表达式
+        
+        识别模式：
+        - GlobalScope.launch { ... }
+        - launch { ... }
+        - viewModelScope.launch { ... }
+        - withContext(Dispatchers.Main) { ... }
+        """
+        saved_pos = self.pos
+        start_token = self._peek()
+        start_pos = self._get_source_position(start_token)
+        
+        # 收集标识符链（如 GlobalScope.launch）
+        identifier_chain = []
+        
+        while True:
+            if self._check(TokenType.IDENTIFIER):
+                identifier_chain.append(self._advance().value)
+            elif self._check(TokenType.DOT):
+                self._advance()  # consume .
+            else:
+                break
+        
+        if not identifier_chain:
+            self.pos = saved_pos
+            return None
+        
+        # 检查是否是调用（后面跟着 ( 或 {）
+        if not self._check(TokenType.LPAREN) and not self._check(TokenType.LBRACE):
+            self.pos = saved_pos
+            return None
+        
+        # 这是一个调用表达式
+        callee_name = '.'.join(identifier_chain)
+        
+        # 解析参数
+        if self._match(TokenType.LPAREN):
+            self._skip_balanced('(', ')')
+        
+        # 解析尾随lambda
+        if self._check(TokenType.LBRACE):
+            self._parse_block()
+        
+        end_token = self._peek(-1)
+        end_pos = self._get_source_position(end_token)
+        end_pos.offset += len(end_token.value)
+        
+        return ASTNode(
+            node_type=NodeType.CALL_EXPRESSION,
+            text=f"{callee_name}(...)",
+            range=SourceRange(start=start_pos, end=end_pos),
+            children=[],
+            metadata={
+                'callee_name': callee_name,
+                'is_launch': callee_name.endswith('launch'),
+                'is_globalscope': 'GlobalScope' in callee_name,
+                'is_with_context': 'withContext' in callee_name
+            }
+        )
+    
+    def _skip_until_statement_end(self):
+        """跳过直到语句结束"""
+        depth = 0
+        while not self._is_at_end():
+            if self._check(TokenType.LBRACE):
+                if depth == 0:
+                    break
+                self._advance()
+                depth += 1
+            elif self._check(TokenType.RBRACE):
+                if depth == 0:
+                    break
+                self._advance()
+                depth -= 1
+            elif self._check(TokenType.SEMICOLON):
+                self._advance()
+                break
+            elif self._check(TokenType.EQ) or self._check(TokenType.ARROW):
+                self._advance()
+                self._skip_expression()
+                break
+            else:
+                self._advance()
     
     def _skip_balanced(self, open_char: str, close_char: str):
         """跳过配对的括号"""

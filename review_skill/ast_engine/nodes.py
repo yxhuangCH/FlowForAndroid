@@ -26,6 +26,7 @@ class NodeType(Enum):
     # 函数声明
     FUNCTION_DECLARATION = "function_declaration"
     PROPERTY_DECLARATION = "property_declaration"
+    LOCAL_VARIABLE = "local_variable"
     
     # 表达式
     CALL_EXPRESSION = "call_expression"
@@ -36,11 +37,15 @@ class NodeType(Enum):
     
     # 控制流
     IF_EXPRESSION = "if_expression"
+    IF_STATEMENT = "if_statement"
     WHEN_EXPRESSION = "when_expression"
+    WHEN_STATEMENT = "when_statement"
     FOR_STATEMENT = "for_statement"
     WHILE_STATEMENT = "while_statement"
     DO_WHILE_STATEMENT = "do_while_statement"
     TRY_EXPRESSION = "try_expression"
+    TRY_STATEMENT = "try_statement"
+    RETURN_STATEMENT = "return_statement"
     
     # 协程相关
     COROUTINE_CONTEXT = "coroutine_context"
