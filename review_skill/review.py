@@ -44,6 +44,22 @@ except Exception as e:
     RULE_ENGINE_AVAILABLE = False
     print(_("⚠ Rule engine initialization failed: {error}").format(error=e))
 
+# Import AST Engine
+AST_ENGINE_AVAILABLE = False
+try:
+    from ast_engine.integration import ASTEngine, should_use_ast_engine, is_ast_engine_enabled
+    AST_ENGINE_AVAILABLE = True
+    if is_ast_engine_enabled():
+        print(_("✓ AST engine available (enabled)"))
+    else:
+        print(_("✓ AST engine available (disabled, use USE_AST_ENGINE=true to enable)"))
+except ImportError as e:
+    AST_ENGINE_AVAILABLE = False
+    print(_("⚠ AST engine import failed: {error}").format(error=e))
+except Exception as e:
+    AST_ENGINE_AVAILABLE = False
+    print(_("⚠ AST engine initialization failed: {error}").format(error=e))
+
 # Try to import HTML report generator
 REPORT_GENERATOR_AVAILABLE = False
 try:
@@ -198,6 +214,60 @@ def _review_with_old_engine(diff: str, config) -> Dict:
         }
 
 
+def _review_with_ast_engine(diff: str, config) -> Dict:
+    """Review using AST engine"""
+    try:
+        from ast_engine.integration import ASTEngine
+        
+        # Create AST engine
+        ast_config = {
+            "disabled_rules": config.get("ast_engine.disabled_rules", [])
+        }
+        engine = ASTEngine(ast_config)
+        
+        # Review diff
+        result = engine.review_diff(diff)
+        
+        # Convert findings to dict format
+        all_findings = [f.to_dict() for f in result.findings]
+        
+        # Calculate score based on findings
+        # Start with 100, subtract based on severity
+        score = 100
+        for finding in result.findings:
+            if finding.severity.value == "error":
+                score -= 10
+            elif finding.severity.value == "warning":
+                score -= 5
+            elif finding.severity.value == "info":
+                score -= 1
+        
+        score = max(0, score)
+        
+        # Check for block issues (error severity)
+        block_issues = [f for f in all_findings if f.get("severity") == "error"]
+        
+        min_score = config.get_min_score_threshold()
+        block_pr = score < min_score or len(block_issues) > 0
+        
+        return {
+            "findings": all_findings,
+            "score": score,
+            "block_pr": block_pr,
+            "block_issues": block_issues,
+            "engine": "ast_engine",
+            "file_count": result.files_scanned,
+            "engine_info": result.engine_info,
+            "scan_time": result.total_time
+        }
+    except Exception as e:
+        print(_("⚠ AST engine execution failed: {error}").format(error=e))
+        import traceback
+        traceback.print_exc()
+        # Fallback to new engine
+        return _review_with_new_engine(diff, config)
+
+
 def review():
     # Get configuration
     config = get_config()
@@ -218,8 +288,21 @@ def review():
         print(_("Configured scan directories: {directories}").format(directories=config.get_scan_directories()))
         return
 
-    # Always use unified rule engine (if available)
-    if RULE_ENGINE_AVAILABLE:
+    # Choose engine based on configuration
+    # Priority: AST Engine (if enabled) > Unified Rule Engine > Fallback
+    
+    if AST_ENGINE_AVAILABLE and is_ast_engine_enabled():
+        print(_("Using AST engine for review..."))
+        try:
+            result = _review_with_ast_engine(diff, config)
+        except Exception as e:
+            print(_("⚠ AST engine execution failed: {error}").format(error=e))
+            print(_("Fallback to unified rule engine..."))
+            if RULE_ENGINE_AVAILABLE:
+                result = _review_with_new_engine(diff, config)
+            else:
+                result = _review_with_old_engine(diff, config)
+    elif RULE_ENGINE_AVAILABLE:
         print(_("Using unified rule engine for review..."))
         try:
             result = _review_with_new_engine(diff, config)

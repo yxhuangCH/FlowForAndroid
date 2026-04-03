@@ -19,3 +19,6 @@ local.properties
 
 # 代码审查报告目录
 review_skill/report/
+
+.opencode
+opencode.json
