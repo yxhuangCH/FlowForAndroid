@@ -15,10 +15,41 @@
 local.properties
 /review_skill/.env
 /.idea/
-/.idea/gradle.xml
+/.gradle/
 
 # 代码审查报告目录
 review_skill/report/
 
-.opencode
+# opencode配置
+.opencode/
 opencode.json
+
+# opencode计划文档
+.opencode/plans/
+
+# AST缓存目录
+.ast_cache/
+.file_cache/
+review_skill/.ast_cache/
+review_skill/.file_cache/
+*.ast
+*.content
+
+# Python缓存
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 临时文件
+*.tmp
+*.log
+*.swp
+*~
+
+# Gradle
+!gradle-wrapper.jar

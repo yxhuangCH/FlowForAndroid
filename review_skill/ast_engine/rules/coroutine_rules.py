@@ -195,8 +195,36 @@ class ViewModelContextRule(ASTBasedRule):
             
             for prop in properties:
                 text = prop.text
-                # 检查是否持有Context
-                if ": Context" in text or ": Activity" in text or ": Fragment" in text:
+                metadata = prop.metadata
+                
+                # 检查是否是构造函数参数
+                is_constructor_param = metadata.get('is_constructor_param', False)
+                
+                # 检查是否持有Context (通过text或metadata判断)
+                has_context_type = (
+                    ": Context" in text or 
+                    ": Activity" in text or 
+                    ": Fragment" in text or
+                    "Context" in text or 
+                    "Activity" in text or 
+                    "Fragment" in text
+                )
+                
+                # 如果是构造函数参数，检查完整类型（通过类名判断）
+                prop_name = metadata.get('property_name', '')
+                if is_constructor_param and prop_name:
+                    # 构造函数参数没有完整类型信息，检查类名是否包含Context相关词
+                    class_text = class_node.text
+                    # 检查构造函数参数名是否暗示Context
+                    context_param_names = ['context', 'activity', 'application', 'fragment']
+                    if prop_name.lower() in context_param_names:
+                        findings.append(self.create_finding(
+                            node=prop,
+                            file_path=file_path,
+                            message=f"ViewModel持有Context参数：{prop_name}可能导致Activity/Fragment内存泄漏",
+                            suggestion="使用Application Context代替，或通过SavedStateHandle存储数据"
+                        ))
+                elif has_context_type:
                     findings.append(self.create_finding(
                         node=prop,
                         file_path=file_path,
