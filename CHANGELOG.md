@@ -2,6 +2,7 @@
 
 ## Unreleased
 ### Added
+- Add new rules
 ### Changed
 ### Removed
 ### Fixed
