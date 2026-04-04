@@ -207,44 +207,64 @@ review.py
 
 ### 2.1 缺失的高价值规则
 
-| 规则 ID | 规则名称 | 严重级别 | 分类 | 描述 |
-|---------|----------|----------|------|------|
-| `memory_leak_handler` | Handler 内存泄漏 | CRITICAL | 内存 | 检测未移除的 Handler 消息 |
-| `memory_leak_static_context` | 静态 Context 引用 | CRITICAL | 内存 | 检测静态字段持有 Activity/View |
-| `memory_leak_listener` | 监听器未移除 | MAJOR | 内存 | 检测 onDestroy 未移除的监听器 |
-| `compose_overdraw` | Compose 过度绘制 | MINOR | Compose | 检测嵌套 Box/Column 导致的过度绘制 |
-| `compose_remember_missing` | 缺少 remember | MAJOR | Compose | 检测 Composable 中未 remember 的状态 |
-| `compose_stable_param` | @Stable 参数 | MINOR | Compose | 检测 Composable 参数缺少 @Stable 注解 |
-| `flow_hot_flow` | 热 Flow 使用 | MINOR | Flow | 检测 MutableSharedFlow/MutableStateFlow 的不当使用 |
-| `flow_cancellation` | Flow 取消处理 | MAJOR | Flow | 检测 Flow 操作中缺少取消处理 |
-| `coroutine_exception` | 协程异常处理 | MAJOR | 协程 | 检测 launch 中缺少异常处理 |
-| `coroutine_structured` | 结构化并发 | MAJOR | 协程 | 检测违反结构化并发的模式 |
-| `hilt_module_injection` | Module 注入 | MINOR | Hilt | 检测 @Module 中缺少 @InstallIn |
-| `hilt_provides_scope` | Provides 作用域 | MINOR | Hilt | 检测 @Provides 方法与 Module 作用域不匹配 |
-| `lifecycle_oncreate_super` | 缺少 super 调用 | MAJOR | Lifecycle | 检测生命周期方法缺少 super 调用 |
-| `recyclerview_viewholder` | ViewHolder 模式 | MINOR | UI | 检测 RecyclerView 缺少 ViewHolder 模式 |
-| `hardcoded_string` | 硬编码字符串 | MINOR | 国际化 | 检测 UI 代码中的硬编码字符串 |
-| `hardcoded_dimension` | 硬编码尺寸 | MINOR | UI | 检测硬编码的 dp/sp 值 |
-| `missing_content_description` | 无障碍描述 | MINOR | 无障碍 | 检测 ImageView 缺少 contentDescription |
-| `intent_extra_key` | Intent Key 常量 | MINOR | 最佳实践 | 检测 Intent extra key 未定义为常量 |
+| 规则 ID | 规则名称 | 严重级别 | 分类 | 描述 | 状态 |
+|---------|----------|----------|------|------|------|
+| `memory_leak_static_context` | 静态 Context 引用 | CRITICAL | 内存 | 检测静态字段持有 Activity/View/Context | ✅ 推荐 |
+| `coroutine_exception` | 协程异常处理 | MAJOR | 协程 | 检测顶层 launch 缺少异常处理 | ✅ 推荐 |
+| `compose_remember_missing` | 缺少 remember | MAJOR | Compose | 检测 Composable 中未 remember 的 mutableStateOf | ✅ 推荐 |
+| `flow_cancellation` | Flow 取消处理 | MAJOR | Flow | 检测 lifecycleScope 中 collect 缺少 repeatOnLifecycle | ✅ 推荐 |
+| `lifecycle_oncreate_super` | 缺少 super 调用 | MAJOR | Lifecycle | 检测 onCreate/onResume 等缺少 super 调用 | ✅ 推荐 |
+| `blocking_main_thread` | 主线程阻塞操作 | CRITICAL | 性能 | 检测 File/SharedPreferences/数据库在主线程调用 | ✅ 新增 |
+| `hilt_module_injection` | Module 注入 | MINOR | Hilt | 检测 @Module 类缺少 @InstallIn | ✅ 推荐 |
+| `mutable_livedata_exposed` | MutableLiveData 暴露 | MAJOR | Architecture | 检测 public 的 MutableLiveData 字段 | ✅ 新增 |
+| `fragment_arg_constructor` | Fragment 含参构造 | MAJOR | Lifecycle | 检测 Fragment 定义含参构造函数（系统重建崩溃风险） | ✅ 新增 |
+| `hardcoded_string` | 硬编码字符串 | MINOR | 国际化 | 检测代码中硬编码的字符串字面量 | ✅ 推荐 |
+| `intent_extra_key` | Intent Key 常量 | MINOR | 最佳实践 | 检测 Intent.putExtra 使用字符串字面量 | ✅ 推荐 |
+| `recyclerview_viewholder` | ViewHolder 模式 | MINOR | UI | 检测 RecyclerView.Adapter 未使用 ViewHolder | ⏳ 第二批 |
+| `hardcoded_dimension` | 硬编码尺寸 | MINOR | UI | 检测硬编码的 dp/px 值 | ⏳ 第二批 |
+| `missing_content_description` | 无障碍描述 | MINOR | 无障碍 | 检测 ImageView 缺少 contentDescription | ⏳ 第二批 |
+| `web_view_js_enabled` | WebView JS 启用 | MINOR | 安全 | 检测 setJavaScriptEnabled(true) 无安全考虑 | ✅ 新增 |
+| `missing_proguard_rule` | 缺少混淆规则 | MAJOR | 构建 | 检测 @SerializedName 等注解类未在 proguard 中 keep | ✅ 新增 |
+| `memory_leak_handler` | Handler 内存泄漏 | CRITICAL | 内存 | 检测未移除的 Handler 消息和回调 | ⏳ 第三批 |
+| `memory_leak_listener` | 监听器未移除 | MAJOR | 内存 | 检测 onDestroy 未移除的监听器 | ⚠️ 暂缓 |
+| `compose_overdraw` | Compose 过度绘制 | MINOR | Compose | 检测嵌套 Box/Column 导致的过度绘制 | ❌ 移除 |
+| `compose_stable_param` | @Stable 参数 | MINOR | Compose | 检测 Composable 参数缺少 @Stable 注解 | ⚠️ 暂缓 |
+| `flow_hot_flow` | 热 Flow 使用 | MINOR | Flow | 检测 MutableSharedFlow/MutableStateFlow 的不当使用 | ❌ 移除 |
+| `coroutine_structured` | 结构化并发 | MAJOR | 协程 | 检测违反结构化并发的模式 | ❌ 移除 |
+| `hilt_provides_scope` | Provides 作用域 | MINOR | Hilt | 检测 @Provides 方法与 Module 作用域不匹配 | ⚠️ 暂缓 |
 
 ### 2.2 规则优先级排序
 
-**第一批（高价值，快速见效）**:
+**第一批（高价值 + 易实现，快速见效）**:
 1. `memory_leak_static_context` - 静态 Context 引用（CRITICAL）
-2. `coroutine_exception` - 协程异常处理（MAJOR）
-3. `compose_remember_missing` - 缺少 remember（MAJOR）
-4. `flow_cancellation` - Flow 取消处理（MAJOR）
-5. `coroutine_structured` - 结构化并发（MAJOR）
+2. `blocking_main_thread` - 主线程阻塞操作（CRITICAL）
+3. `coroutine_exception` - 协程异常处理（MAJOR）
+4. `compose_remember_missing` - 缺少 remember（MAJOR）
+5. `lifecycle_oncreate_super` - 缺少 super 调用（MAJOR）
+6. `mutable_livedata_exposed` - MutableLiveData 暴露（MAJOR）
+7. `fragment_arg_constructor` - Fragment 含参构造（MAJOR）
+8. `hardcoded_string` - 硬编码字符串（国际化刚需）
+9. `hilt_module_injection` - Module 注入（简单实用）
+10. `intent_extra_key` - Intent Key 常量（最佳实践）
 
-**第二批（中等价值）**:
-6. `memory_leak_listener` - 监听器未移除
-7. `flow_hot_flow` - 热 Flow 使用
-8. `hilt_module_injection` - Module 注入
-9. `lifecycle_oncreate_super` - 缺少 super 调用
+**第二批（中等价值/中等难度）**:
+11. `flow_cancellation` - Flow 取消处理
+12. `recyclerview_viewholder` - ViewHolder 模式
+13. `hardcoded_dimension` - 硬编码尺寸
+14. `missing_content_description` - 无障碍描述
+15. `web_view_js_enabled` - WebView JS 启用
+16. `missing_proguard_rule` - 缺少混淆规则
 
-**第三批（锦上添花）**:
-10-18. 其余规则
+**第三批（高难度/低优先级或暂缓）**:
+17. `memory_leak_handler` - Handler 内存泄漏（需跨函数分析）
+
+**已移除/暂缓（定义模糊或超出静态分析能力）**:
+- ❌ `compose_overdraw` - 定义模糊，Skia 自动优化，误报风险高
+- ❌ `flow_hot_flow` - "不当使用"标准不明确，难以检测
+- ❌ `coroutine_structured` - 需要完整协程作用域数据流分析，超出静态分析能力
+- ⚠️ `memory_leak_listener` - 需跨函数配对分析，实现复杂，暂缓
+- ⚠️ `compose_stable_param` - 需要类型推断能力，投入产出比低，暂缓
+- ⚠️ `hilt_provides_scope` - 需要模拟 Hilt 组件树，静态分析难以完整支持，暂缓
 
 ---
 
@@ -961,8 +981,8 @@ class AutoFixSuggestion:
 |------|--------|----------|------|
 | 现有规则增强（5 条高误报规则） | P1 | 8h | Phase 1 |
 | 规则去重 | P1 | 2h | Phase 1 |
-| 新增规则第一批（5 条） | P1 | 6h | Phase 1 |
-| 新增规则第二批（4 条） | P2 | 4h | 第一批 |
+| 新增规则第一批（10 条） | P1 | 12h | Phase 1 |
+| 新增规则第二批（6 条） | P2 | 6h | 第一批 |
 | AST 规则迁移（3 条） | P2 | 6h | Phase 1 |
 
 ### Phase 3: 输出格式 + CI/CD (1-2 周)
@@ -1001,7 +1021,7 @@ class AutoFixSuggestion:
 
 | 指标 | 当前状态 | v3 目标 | 提升 |
 |------|----------|---------|------|
-| 规则数量 | ~25 条 | 40+ 条 | +60% |
+| 规则数量 | ~25 条 | 35+ 条 | +40% |
 | 规则精确性 | ~70% | 95% | +25% |
 | 误报率 | ~30% | <5% | -83% |
 | 测试覆盖率 | ~45% | >85% | +40% |
@@ -1101,19 +1121,26 @@ class AutoFixSuggestion:
 ```
                     高实现难度
                         │
-    coroutine_structured│  no_globalscope (AST)
-    compose_remember    │  viewmodel_context (AST)
-    flow_cancellation   │  main_thread_io (AST)
+    memory_leak_handler │  flow_cancellation
+    memory_leak_listener│  compose_remember_missing
+    coroutine_structured│  viewmodel_context (AST)
+    (已移除)            │  no_globalscope (AST)
                         │
     ────────────────────┼────────────────────
                         │
-    memory_leak_static  │  no_globalscope (string)
-    hilt_module_inject  │  launched_effect_unit
-    lifecycle_super     │  sharing_eagerly
+    hardcoded_dimension │  memory_leak_static_context
+    missing_content_desc│  blocking_main_thread
+    hilt_provides_scope │  coroutine_exception
+    (暂缓)              │  lifecycle_oncreate_super
+                        │  hardcoded_string
                         │
                     低实现难度
     ←───────────────────┼───────────────────→
     低业务价值        高业务价值
+
+    第一批目标区域: 右下角（高价值 + 易实现）
+    第二批目标区域: 右上角（高价值 + 中等难度）
+    暂缓/移除区域: 左上角（低价值 + 高难度）
 ```
 
 ### B. 技术债务清单
@@ -1136,7 +1163,58 @@ class AutoFixSuggestion:
 
 ---
 
-**文档版本**: v3.0.0  
-**最后更新**: 2026-04-03  
+**文档版本**: v3.1.0  
+**最后更新**: 2026-04-04  
 **维护者**: AI Assistant  
 **前置文档**: [REFACTOR_PLAN_v2.md](./REFACTOR_PLAN_v2.md)
+
+---
+
+## 📝 修订记录
+
+| 版本 | 日期 | 变更内容 |
+|------|------|----------|
+| v3.1.0 | 2026-04-04 | 重新评估 2.1 节规则清单，调整优先级排序，移除定义模糊规则，新增 5 条 Android 特色规则 |
+| v3.0.1 | 2026-04-04 | **第一批规则实施完成**：实现 10 条规则，创建 Kotlin 测试代码，所有 25 个测试用例通过 |
+| v3.0.0 | 2026-04-03 | 初始版本，基于 v2 阶段1-2 完成后的代码库分析制定 |
+
+---
+
+## ✅ 第一批规则实施记录 (v3.0.1)
+
+### 已实现的规则
+
+| 规则 ID | 规则名称 | 严重级别 | 测试状态 | 测试覆盖率 |
+|---------|----------|----------|----------|------------|
+| `memory_leak_static_context` | 静态 Context 引用 | CRITICAL | ✅ 通过 | 3/3 |
+| `blocking_main_thread` | 主线程阻塞操作 | CRITICAL | ✅ 通过 | 3/3 |
+| `coroutine_exception` | 协程异常处理 | MAJOR | ✅ 通过 | 3/3 |
+| `compose_remember_missing` | 缺少 remember | MAJOR | ✅ 通过 | 3/3 |
+| `lifecycle_oncreate_super` | 缺少 super 调用 | MAJOR | ✅ 通过 | 3/3 |
+| `mutable_livedata_exposed` | MutableLiveData 暴露 | MAJOR | ✅ 通过 | 3/3 |
+| `fragment_arg_constructor` | Fragment 含参构造 | MAJOR | ✅ 通过 | 2/2 |
+| `hardcoded_string` | 硬编码字符串 | MINOR | ✅ 通过 | 2/2 |
+| `hilt_module_injection` | Module 注入 | MINOR | ✅ 通过 | 2/2 |
+| `intent_extra_key` | Intent Key 常量 | MINOR | ✅ 通过 | 2/2 |
+
+**总计**: 10 条规则，25 个测试用例，全部通过 ✅
+
+### 新增文件
+
+**规则实现**:
+- `rule_engine/rules/batch1_rules.py` - 第一批 10 条规则实现
+
+**Python 测试**:
+- `test_rule/test_batch1_rules.py` - 规则单元测试
+
+**Kotlin 测试代码** (位于 `app/src/main/java/com/yxhuang/flowforandroid/reviewskilltest/batch1/`):
+- `MemoryLeakStaticContext.kt` - 静态 Context 引用测试用例
+- `BlockingMainThread.kt` - 主线程阻塞操作测试用例
+- `CoroutineException.kt` - 协程异常处理测试用例
+- `ComposeRemember.kt` - Compose remember 测试用例
+- `LifecycleSuperCall.kt` - 生命周期 super 调用测试用例
+- `MutableLiveDataExposed.kt` - MutableLiveData 暴露测试用例
+- `FragmentArgConstructor.kt` - Fragment 构造函数测试用例
+- `HardcodedString.kt` - 硬编码字符串测试用例
+- `HiltModuleInjection.kt` - Hilt Module 测试用例
+- `IntentExtraKey.kt` - Intent Key 常量测试用例
