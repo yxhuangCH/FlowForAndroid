@@ -292,7 +292,15 @@ class RuleEngine:
     
     def _execute_rule_with_timeout(self, rule: Rule, context: RuleContext) -> Tuple[List[Finding], bool]:
         """Rule execution with timeout"""
-        return self._execute_rule_enhanced(rule, context)
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(self._execute_rule_enhanced, rule, context)
+            try:
+                return future.result(timeout=self.execution_timeout)
+            except FutureTimeoutError:
+                logger.warning(f"Rule execution timeout: {rule.metadata.id} (>{self.execution_timeout}s)")
+                raise TimeoutError(f"Rule {rule.metadata.id} exceeded {self.execution_timeout}s timeout")
     
     def _execute_rule_enhanced(self, rule: Rule, context: RuleContext) -> Tuple[List[Finding], bool]:
         """Enhanced single rule execution"""

@@ -53,3 +53,5 @@ htmlcov/
 
 # Gradle
 !gradle-wrapper.jar
+
+.claude/

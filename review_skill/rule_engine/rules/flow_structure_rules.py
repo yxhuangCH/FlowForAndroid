@@ -10,12 +10,12 @@ from ..adapters.decorators import rule
 
 @rule(
     rule_id="nested_launch_in_collect",
-    name="collectLatestlaunch",
-    description="collectLatestlaunch",
+    name="collectLatest 内部嵌套 launch",
+    description="在 collectLatest 回调内部使用 launch 会导致并发问题，collectLatest 的取消语义可能无法正确传递",
     severity=RuleSeverity.MAJOR,
     category=RuleCategory.CONCURRENCY,
     tags=["android", "kotlin", "flow", "collect", "launch", "concurrency"],
-    suggested_fix="collectLatestlaunch，",
+    suggested_fix="避免在 collectLatest 内部使用 launch，直接使用 collectLatest 的挂起特性处理异步操作",
     weight=0.8
 )
 def nested_launch_in_collect_rule(context: RuleContext) -> List[Finding]:
@@ -60,12 +60,12 @@ def nested_launch_in_collect_rule(context: RuleContext) -> List[Finding]:
 
 @rule(
     rule_id="launch_inside_flow",
-    name="flow builderlaunch",
-    description="flow builderlaunch",
+    name="flow {} 构建器中使用 launch",
+    description="在 flow { } 构建器中使用 launch 会破坏流的可组合性和背压处理，应该使用 callbackFlow 或 channelFlow",
     severity=RuleSeverity.CRITICAL,
     category=RuleCategory.CONCURRENCY,
     tags=["android", "kotlin", "flow", "launch", "concurrency", "builder"],
-    suggested_fix="callbackFlowchannelFlow，",
+    suggested_fix="使用 callbackFlow 或 channelFlow 替代 flow { } 构建器中的 launch",
     weight=1.0
 )
 def launch_inside_flow_rule(context: RuleContext) -> List[Finding]:
@@ -105,12 +105,12 @@ def launch_inside_flow_rule(context: RuleContext) -> List[Finding]:
 
 @rule(
     rule_id="multiple_collects",
-    name="collectFlow",
-    description="collectFlow",
+    name="多次收集同一个 Cold Flow",
+    description="多个地方收集同一个 Cold Flow 会导致重复执行上游操作，浪费资源",
     severity=RuleSeverity.MINOR,
     category=RuleCategory.BEST_PRACTICE,
     tags=["android", "kotlin", "flow", "collect", "cold_flow"],
-    suggested_fix="shareInstateInConvert，collect",
+    suggested_fix="使用 shareIn 或 stateIn 将 Cold Flow 转换为 Hot Flow，避免重复执行",
     weight=0.5
 )
 def multiple_collects_rule(context: RuleContext) -> List[Finding]:
@@ -144,12 +144,12 @@ def multiple_collects_rule(context: RuleContext) -> List[Finding]:
 
 @rule(
     rule_id="channel_flow_no_awaitclose",
-    name="channelFlowawaitClose",
-    description="channelFlowawaitClose",
+    name="channelFlow 缺少 awaitClose",
+    description="使用 channelFlow 但未调用 awaitClose，当 Flow 取消时无法正确清理资源，可能导致内存泄漏",
     severity=RuleSeverity.MAJOR,
     category=RuleCategory.LIFECYCLE,
     tags=["android", "kotlin", "flow", "channel", "resource", "leak"],
-    suggested_fix="channelFlowAddawaitClose { }",
+    suggested_fix="在 channelFlow 中添加 awaitClose { } 块，确保在 Flow 取消时清理资源",
     weight=0.9
 )
 def channel_flow_no_awaitclose_rule(context: RuleContext) -> List[Finding]:
