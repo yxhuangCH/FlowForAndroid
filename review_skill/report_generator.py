@@ -884,10 +884,10 @@ class HTMLReportGenerator:
     @staticmethod
     def _escape_html(text: str) -> str:
         """Escapes HTML special characters"""
-        return (text.replace('&', '&')
-                    .replace('<', '<')
-                    .replace('>', '>')
-                    .replace('"', '"')
+        return (text.replace('&', '&amp;')
+                    .replace('<', '&lt;')
+                    .replace('>', '&gt;')
+                    .replace('"', '&quot;')
                     .replace("'", '&#039;'))
     
     @staticmethod

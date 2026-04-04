@@ -10,12 +10,12 @@ from ..adapters.decorators import rule
 
 @rule(
     rule_id="singleton_component_inject_activity",
-    name="@Singleton ComponentActivity",
-    description="@Singleton ComponentActivity",
+    name="@Singleton 与 ComponentActivity 生命周期不匹配",
+    description="使用 @Singleton 作用域注入 Component/Activity 会导致生命周期不匹配，单例对象持有 Activity 引用会造成内存泄漏",
     severity=RuleSeverity.MAJOR,
     category=RuleCategory.LIFECYCLE,
     tags=["android", "kotlin", "dagger2", "di", "singleton", "component", "activity", "lifecycle"],
-    suggested_fix="",
+    suggested_fix="使用 @ActivityScoped 或 @FragmentScoped 替代 @Singleton 来注入 Activity",
     weight=0.9
 )
 def singleton_component_inject_activity_rule(context: RuleContext) -> List[Finding]:
@@ -57,12 +57,12 @@ def singleton_component_inject_activity_rule(context: RuleContext) -> List[Findi
 
 @rule(
     rule_id="field_injection_detected",
-    name="",
-    description="（@Inject lateinit var），",
+    name="检测到字段注入",
+    description="使用 @Inject lateinit var 进行字段注入不利于测试和维护，推荐使用构造函数注入",
     severity=RuleSeverity.MINOR,
     category=RuleCategory.BEST_PRACTICE,
     tags=["android", "kotlin", "dagger2", "di", "field_injection", "constructor_injection"],
-    suggested_fix="",
+    suggested_fix="将字段注入改为构造函数注入，提高可测试性和代码清晰度",
     weight=0.7
 )
 def field_injection_detected_rule(context: RuleContext) -> List[Finding]:
@@ -93,12 +93,12 @@ def field_injection_detected_rule(context: RuleContext) -> List[Finding]:
 
 @rule(
     rule_id="provides_without_scope",
-    name="@Provides",
-    description="@Provides",
+    name="@Provides 方法缺少作用域",
+    description="@Provides 方法未指定作用域（如 @Singleton），每次注入都会创建新实例，可能导致不必要的对象创建",
     severity=RuleSeverity.MINOR,
     category=RuleCategory.BEST_PRACTICE,
     tags=["android", "kotlin", "dagger2", "di", "provides", "scope"],
-    suggested_fix="@ProvidesAdd，@Singleton",
+    suggested_fix="为 @Provides 方法添加合适的作用域注解，如 @Singleton、@ActivityScoped 等",
     weight=0.6
 )
 def provides_without_scope_rule(context: RuleContext) -> List[Finding]:

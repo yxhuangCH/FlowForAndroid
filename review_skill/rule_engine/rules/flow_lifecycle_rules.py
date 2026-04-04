@@ -8,12 +8,12 @@ from ..adapters.decorators import rule
 
 @rule(
     rule_id="statein_globalscope",
-    name="stateInGlobalScope",
-    description="StateFlowGlobalScope",
+    name="StateFlow.stateIn 使用 GlobalScope",
+    description="在 StateFlow.stateIn() 中使用 GlobalScope 会导致内存泄漏，因为 StateFlow 的生命周期与 GlobalScope 绑定，无法自动清理",
     severity=RuleSeverity.CRITICAL,
     category=RuleCategory.LIFECYCLE,
     tags=["android", "kotlin", "flow", "stateflow", "globalscope", "memory_leak"],
-    suggested_fix="viewModelScopelifecycleScopeGlobalScope",
+    suggested_fix="使用 viewModelScope 或 lifecycleScope 替代 GlobalScope，确保 StateFlow 在生命周期结束时自动清理",
     weight=1.0
 )
 def statein_globalscope_rule(context: RuleContext) -> List[Finding]:
@@ -38,12 +38,12 @@ def statein_globalscope_rule(context: RuleContext) -> List[Finding]:
 
 @rule(
     rule_id="sharein_globalscope",
-    name="shareInGlobalScope",
-    description="SharedFlowGlobalScope",
+    name="SharedFlow.shareIn 使用 GlobalScope",
+    description="在 SharedFlow.shareIn() 中使用 GlobalScope 会导致内存泄漏，因为 SharedFlow 的生命周期与 GlobalScope 绑定，无法自动清理",
     severity=RuleSeverity.CRITICAL,
     category=RuleCategory.LIFECYCLE,
     tags=["android", "kotlin", "flow", "sharedflow", "globalscope", "memory_leak"],
-    suggested_fix="viewModelScopelifecycleScopeGlobalScope",
+    suggested_fix="使用 viewModelScope 或 lifecycleScope 替代 GlobalScope，确保 SharedFlow 在生命周期结束时自动清理",
     weight=1.0
 )
 def sharein_globalscope_rule(context: RuleContext) -> List[Finding]:
@@ -68,12 +68,12 @@ def sharein_globalscope_rule(context: RuleContext) -> List[Finding]:
 
 @rule(
     rule_id="collect_without_repeat",
-    name="Flow collectrepeatOnLifecycle",
-    description="UIcollect FlowrepeatOnLifecycle",
+    name="UI 层 Flow collect 缺少 repeatOnLifecycle",
+    description="在 Activity/Fragment/Composable 中直接使用 collect 收集 Flow，当应用进入后台时仍会接收事件，可能导致崩溃或资源浪费",
     severity=RuleSeverity.MAJOR,
     category=RuleCategory.LIFECYCLE,
     tags=["android", "kotlin", "flow", "collect", "lifecycle", "ui"],
-    suggested_fix="repeatOnLifecyclecollect",
+    suggested_fix="使用 repeatOnLifecycle 包装 collect，确保只在生命周期处于特定状态时接收事件",
     weight=0.9
 )
 def collect_without_repeat_rule(context: RuleContext) -> List[Finding]:
@@ -119,12 +119,12 @@ def collect_without_repeat_rule(context: RuleContext) -> List[Finding]:
 
 @rule(
     rule_id="statein_without_viewmodelscope",
-    name="ViewModelstateInviewModelScope",
-    description="ViewModelstateInviewModelScope",
+    name="ViewModel 中 stateIn 未使用 viewModelScope",
+    description="在 ViewModel 中使用 stateIn 转换 Flow 时，应传入 viewModelScope 作为作用域，以确保与 ViewModel 生命周期绑定",
     severity=RuleSeverity.MAJOR,
     category=RuleCategory.LIFECYCLE,
     tags=["android", "kotlin", "flow", "viewmodel", "scope"],
-    suggested_fix="ViewModelstateIn(viewModelScope)",
+    suggested_fix="在 ViewModel 中使用 stateIn(viewModelScope) 替代其他作用域",
     weight=0.8
 )
 def statein_without_viewmodelscope_rule(context: RuleContext) -> List[Finding]:
