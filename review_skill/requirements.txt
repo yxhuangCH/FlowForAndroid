@@ -1,4 +1,6 @@
-openai>=1.0.0
-gitpython>=3.1.40
-python-dotenv>=1.0.0
+# Production dependencies
+openai>=1.0.0,<2.0.0
+python-dotenv>=1.0.0,<2.0.0
+PyYAML>=6.0,<7.0
+
 # DeepSeek 支持：使用 OpenAI 兼容的 API，需要设置 DEEPSEEK_API_KEY 环境变量

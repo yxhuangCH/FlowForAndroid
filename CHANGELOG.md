@@ -5,6 +5,7 @@
 - Add new rules
 ### Changed
 ### Removed
+- Remove unuse resources
 ### Fixed
 
 ## v1.1.3(2026.03.21)
