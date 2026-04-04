@@ -87,7 +87,7 @@ fi
 cd "$REVIEW_SKILL_DIR"
 
 # Check if dependencies are installed
-if ! python3 -c "import git" 2>/dev/null; then
+if ! python3 -c "import yaml" 2>/dev/null; then
     echo -e "${YELLOW}⚠️  Installing dependencies...${NC}"
     pip3 install -r requirements.txt -q
 fi
