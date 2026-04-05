@@ -1,5 +1,12 @@
 # Changelog
 
+## Unrelease
+### Added
+### Changed
+- Plan v4 Phase 2: merge rule
+### Removed
+### Fixed
+
 ## v1.2.0(2026.04.05)
 ### Added
 - Add new rules
