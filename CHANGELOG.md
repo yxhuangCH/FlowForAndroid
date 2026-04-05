@@ -4,6 +4,7 @@
 ### Added
 ### Changed
 - Plan v4 Phase 2: merge rule
+- Plan v4 Phase 3: refactor cache
 ### Removed
 ### Fixed
 
