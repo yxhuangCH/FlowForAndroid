@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.2.0(2026.04.05)
 ### Added
 - Add new rules
 ### Changed
