@@ -182,6 +182,7 @@ class ExecutionPlan:
     fast_rules: List[UnifiedRule] = field(default_factory=list)
     hybrid_rules: List[UnifiedRule] = field(default_factory=list)
     precise_rules: List[UnifiedRule] = field(default_factory=list)
+    strategy: Any = field(default=None)  # ExecutionStrategy, optional
 
     @property
     def total_rules(self) -> int:

@@ -5,6 +5,7 @@
 ### Changed
 - Plan v4 Phase 2: merge rule
 - Plan v4 Phase 3: refactor cache
+- Plan v4 Phase 4: refactor rule engine
 ### Removed
 ### Fixed
 
