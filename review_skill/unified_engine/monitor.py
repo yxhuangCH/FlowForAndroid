@@ -17,8 +17,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 if TYPE_CHECKING:
-    from rule_engine.interfaces import Finding, RuleSeverity
-    from .interfaces import UnifiedRule, ExecutionMode
+    from .interfaces import Finding, RuleSeverity, UnifiedRule, ExecutionMode
 
 
 @dataclass

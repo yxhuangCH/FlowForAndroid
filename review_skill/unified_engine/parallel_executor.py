@@ -15,8 +15,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
-    from rule_engine.interfaces import Finding
-    from .interfaces import UnifiedRule
+    from .interfaces import Finding, UnifiedRule
     from .context import UnifiedContext
 
 

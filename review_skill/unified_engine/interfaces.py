@@ -15,19 +15,115 @@ from enum import Enum
 from typing import List, Dict, Any, Optional, Type, TYPE_CHECKING
 import time
 
-# 从 Rule Engine 复用核心数据类
-from rule_engine.interfaces import (
-    RuleMetadata,
-    Finding,
-    RuleSeverity,
-    RuleCategory,
-    RuleExecutionError,
-    ConfigurationError,
-)
 
 if TYPE_CHECKING:
     from .context import UnifiedContext
 
+
+# ============================================================
+# 核心类型定义 (从 rule_engine 复制过来，保持兼容)
+# ============================================================
+
+class RuleSeverity(Enum):
+    """Rule severity levels"""
+    INFO = "info"           # Informational (no deduction)
+    MINOR = "minor"         # Minor issue (deduct 5 points)
+    MAJOR = "major"         # Major issue (deduct 10 points)
+    CRITICAL = "critical"   # Critical issue (deduct 20 points)
+    BLOCKER = "blocker"     # Blocker issue (deduct 100 points, block PR)
+
+
+class RuleCategory(Enum):
+    """Rule categories"""
+    SECURITY = "security"            # Security
+    PERFORMANCE = "performance"      # Performance
+    BEST_PRACTICE = "best_practice"  # Best Practice
+    MAINTAINABILITY = "maintainability"  # Maintainability
+    CORRECTNESS = "correctness"      # Correctness
+    STYLE = "style"                  # Code Style
+    CONCURRENCY = "concurrency"      # Concurrency
+    LIFECYCLE = "lifecycle"          # Lifecycle Management
+
+
+@dataclass
+class RuleMetadata:
+    """Rule metadata"""
+    id: str                         # Unique rule identifier (e.g.: no_globalscope)
+    name: str                       # Rule name (human-readable)
+    description: str                # Detailed rule description
+    severity: RuleSeverity          # Severity level
+    category: RuleCategory          # Category
+    enabled: bool = True            # Whether enabled
+    weight: float = 1.0             # Weight (affects scoring)
+    tags: List[str] = field(default_factory=list)  # Tags
+    suggested_fix: Optional[str] = None  # Suggested fix
+    reference_url: Optional[str] = None  # Reference URL
+    min_score_deduction: Optional[int] = None  # Min deduction
+    max_score_deduction: Optional[int] = None  # Max deduction
+    
+    def __post_init__(self):
+        if not self.id:
+            raise ValueError("Rule ID cannot be empty")
+        if not self.name:
+            raise ValueError("Rule name cannot be empty")
+        if not self.description:
+            raise ValueError("Rule description cannot be empty")
+
+
+@dataclass
+class Finding:
+    """Review finding/issue"""
+    rule_id: str                     # Rule ID
+    message: str                     # Issue description
+    severity: RuleSeverity           # Severity level
+    file_path: Optional[str] = None  # File path
+    line_number: Optional[int] = None  # Line number (1-based)
+    column: Optional[int] = None     # Column number (1-based)
+    code_snippet: Optional[str] = None  # Code snippet
+    suggestion: Optional[str] = None  # Fix suggestion
+    confidence: float = 1.0          # Detection confidence (0.0-1.0)
+    metadata: Dict[str, Any] = field(default_factory=dict)  # Additional metadata
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dict format"""
+        return {
+            "rule": self.rule_id,
+            "severity": self.severity.value,
+            "message": self.message,
+            "file_path": self.file_path,
+            "line_number": self.line_number,
+            "column": self.column,
+            "code_snippet": self.code_snippet,
+            "suggestion": self.suggestion,
+            "confidence": self.confidence,
+            **self.metadata
+        }
+
+
+# Error handling classes
+class ReviewError(Exception):
+    """Review system base error class"""
+    pass
+
+
+class RuleExecutionError(ReviewError):
+    """Rule execution error"""
+    pass
+
+
+class ConfigurationError(ReviewError):
+    """Configuration error"""
+    pass
+
+
+class IntegrationError(ReviewError):
+    """Integration error"""
+    pass
+
+
+# ============================================================
+# 统一引擎特有定义
+# ============================================================
 
 class ExecutionMode(Enum):
     """规则执行模式

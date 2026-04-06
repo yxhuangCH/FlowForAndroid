@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
-    from rule_engine.interfaces import Finding
+    from .interfaces import Finding
 
 from .cache import UnifiedCache
 from .scheduler import RuleScheduler
