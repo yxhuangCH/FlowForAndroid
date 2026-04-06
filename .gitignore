@@ -33,6 +33,7 @@ opencode.json
 review_skill/.ast_cache/
 review_skill/.file_cache/
 review_skill/.cache_version
+review_skill/.unified_cache/
 *.ast
 *.content
 

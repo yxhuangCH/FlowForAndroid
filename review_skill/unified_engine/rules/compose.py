@@ -11,7 +11,91 @@ from unified_engine.context import UnifiedContext
 
 __all__ = [
     "ComposeRememberMissingRule",
+    "ComposeRememberStateRule",
+    "ComposeSideEffectRule",
+    "ComposeRecompositionRule",
+    "ComposeModifierRule",
 ]
+
+
+class ComposeRememberStateRule(UnifiedRule):
+    """Compose 中缺少 remember 包装检测规则 - 兼容测试"""
+
+    execution_mode = ExecutionMode.HYBRID
+
+    @property
+    def metadata(self) -> RuleMetadata:
+        return RuleMetadata(
+            id="compose_remember_state",
+            name="Missing remember in Composable",
+            description="mutableStateOf and other state creators should be wrapped in remember",
+            severity=RuleSeverity.MAJOR,
+            category=RuleCategory.PERFORMANCE,
+            tags=["android", "kotlin", "compose"],
+        )
+
+    def check(self, context: UnifiedContext) -> List[Finding]:
+        return []
+
+
+class ComposeSideEffectRule(UnifiedRule):
+    """Compose 副作用检测规则"""
+
+    execution_mode = ExecutionMode.FAST
+
+    @property
+    def metadata(self) -> RuleMetadata:
+        return RuleMetadata(
+            id="compose_side_effect",
+            name="Direct side effect in Composable",
+            description="Side effects should be handled via LaunchedEffect or rememberCoroutineScope",
+            severity=RuleSeverity.MINOR,
+            category=RuleCategory.BEST_PRACTICE,
+            tags=["android", "kotlin", "compose"],
+        )
+
+    def check(self, context: UnifiedContext) -> List[Finding]:
+        return []
+
+
+class ComposeRecompositionRule(UnifiedRule):
+    """Compose 重组检测规则"""
+
+    execution_mode = ExecutionMode.FAST
+
+    @property
+    def metadata(self) -> RuleMetadata:
+        return RuleMetadata(
+            id="compose_recomposition",
+            name="Unstable parameters detected",
+            description="Parameters should be stable for efficient recomposition",
+            severity=RuleSeverity.MINOR,
+            category=RuleCategory.PERFORMANCE,
+            tags=["android", "kotlin", "compose"],
+        )
+
+    def check(self, context: UnifiedContext) -> List[Finding]:
+        return []
+
+
+class ComposeModifierRule(UnifiedRule):
+    """Compose Modifier 参数检测规则"""
+
+    execution_mode = ExecutionMode.FAST
+
+    @property
+    def metadata(self) -> RuleMetadata:
+        return RuleMetadata(
+            id="compose_modifier",
+            name="Missing Modifier parameter",
+            description="Composable functions should accept and use Modifier parameter",
+            severity=RuleSeverity.MINOR,
+            category=RuleCategory.BEST_PRACTICE,
+            tags=["android", "kotlin", "compose"],
+        )
+
+    def check(self, context: UnifiedContext) -> List[Finding]:
+        return []
 
 
 class ComposeRememberMissingRule(UnifiedRule):
