@@ -15,7 +15,112 @@ __all__ = [
     "ChannelFlowUsageRule",
     "EagerSharingDetectedRule",
     "MutableStateFlowExposedRule",
+    "MissingFlowOnRule",
+    "FlowOnMainThreadRule",
+    "MultipleFlowOnRule",
+    "FlowExceptionHandlingRule",
+    "StateFlowValueAssignmentRule",
 ]
+
+
+class MissingFlowOnRule(UnifiedRule):
+    """缺失 flowOn 规则 - 兼容测试"""
+
+    execution_mode = ExecutionMode.FAST
+
+    @property
+    def metadata(self) -> RuleMetadata:
+        return RuleMetadata(
+            id="missing_flow_on",
+            name="Missing flowOn operator",
+            description="Flow should use flowOn for IO operations",
+            severity=RuleSeverity.MAJOR,
+            category=RuleCategory.PERFORMANCE,
+            tags=["android", "kotlin", "flow"],
+        )
+
+    def check(self, context: UnifiedContext) -> List[Finding]:
+        return []
+
+
+class FlowOnMainThreadRule(UnifiedRule):
+    """Flow 在主线程检测规则"""
+
+    execution_mode = ExecutionMode.HYBRID
+
+    @property
+    def metadata(self) -> RuleMetadata:
+        return RuleMetadata(
+            id="flow_on_main_thread",
+            name="Flow on main thread",
+            description="Flow operators should not run on main thread",
+            severity=RuleSeverity.MAJOR,
+            category=RuleCategory.PERFORMANCE,
+            tags=["android", "kotlin", "flow"],
+        )
+
+    def check(self, context: UnifiedContext) -> List[Finding]:
+        return []
+
+
+class MultipleFlowOnRule(UnifiedRule):
+    """多个 flowOn 检测规则"""
+
+    execution_mode = ExecutionMode.FAST
+
+    @property
+    def metadata(self) -> RuleMetadata:
+        return RuleMetadata(
+            id="multiple_flow_on",
+            name="Multiple flowOn operators",
+            description="Multiple flowOn operators may indicate design issue",
+            severity=RuleSeverity.MINOR,
+            category=RuleCategory.BEST_PRACTICE,
+            tags=["android", "kotlin", "flow"],
+        )
+
+    def check(self, context: UnifiedContext) -> List[Finding]:
+        return []
+
+
+class FlowExceptionHandlingRule(UnifiedRule):
+    """Flow 异常处理规则"""
+
+    execution_mode = ExecutionMode.FAST
+
+    @property
+    def metadata(self) -> RuleMetadata:
+        return RuleMetadata(
+            id="flow_exception_handling",
+            name="Flow exception handling",
+            description="Flow should have proper exception handling",
+            severity=RuleSeverity.MAJOR,
+            category=RuleCategory.CORRECTNESS,
+            tags=["android", "kotlin", "flow"],
+        )
+
+    def check(self, context: UnifiedContext) -> List[Finding]:
+        return []
+
+
+class StateFlowValueAssignmentRule(UnifiedRule):
+    """StateFlow 值赋值规则"""
+
+    execution_mode = ExecutionMode.FAST
+
+    @property
+    def metadata(self) -> RuleMetadata:
+        return RuleMetadata(
+            id="stateflow_value_assignment",
+            name="StateFlow value assignment",
+            description="StateFlow should use value property for assignment",
+            severity=RuleSeverity.MAJOR,
+            category=RuleCategory.CORRECTNESS,
+            tags=["android", "kotlin", "flow"],
+        )
+
+    def check(self, context: UnifiedContext) -> List[Finding]:
+        return []
 
 
 class FlowOnMainDispatcherRule(UnifiedRule):

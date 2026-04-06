@@ -107,6 +107,14 @@ class UnifiedExecutionEngine:
         # 规则
         self.rules = rules or get_all_rules()
 
+        # 注册规则到调度器的注册表
+        for rule in self.rules:
+            try:
+                if not self.scheduler.registry.has_rule(rule.metadata.id):
+                    self.scheduler.registry.register(rule)
+            except ValueError:
+                pass  # Already registered
+
         # 自适应策略
         self.adaptive_strategy = AdaptiveStrategy() if enable_adaptive else None
 
@@ -143,7 +151,6 @@ class UnifiedExecutionEngine:
         context = UnifiedContext(
             code=content,
             file_path=file_path,
-            cache=self.cache,
         )
 
         # 创建执行计划（自适应）
