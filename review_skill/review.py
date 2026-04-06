@@ -23,42 +23,47 @@ except Exception as e:
     LLM_AVAILABLE = False
     print(_("⚠ LLM layer initialization failed: {error}").format(error=e))
 
-# Import unified rule engine
+# Import unified engine (preferred)
+UNIFIED_ENGINE_AVAILABLE = False
+try:
+    from unified_engine.engine import UnifiedExecutionEngine
+    UNIFIED_ENGINE_AVAILABLE = True
+    print(_("✓ Using unified engine (recommended)"))
+except ImportError as e:
+    UNIFIED_ENGINE_AVAILABLE = False
+    print(_("⚠ Unified engine not available: {error}"))
+
+# Import legacy rule engine (deprecated - fallback only)
 RULE_ENGINE_AVAILABLE = False
 try:
-    from rule_engine.integration.review_runner import ReviewRunner
-    from rule_engine.interfaces import ReviewError, ConfigurationError, IntegrationError
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        from rule_engine.integration.review_runner import ReviewRunner
+        from rule_engine.interfaces import ReviewError, ConfigurationError, IntegrationError
     RULE_ENGINE_AVAILABLE = True
-    print(_("✓ Unified rule engine available"))
+    print(_("⚠ Using legacy rule engine (deprecated)"))
 except ImportError as e:
     RULE_ENGINE_AVAILABLE = False
-    print(_("⚠ Rule engine import failed: {error}").format(error=e))
-    # Fallback to old error handling
-    class ReviewError(Exception):
-        pass
-    class ConfigurationError(ReviewError):
-        pass
-    class IntegrationError(ReviewError):
-        pass
+    print(_("⚠ Legacy rule engine import failed: {error}"))
 except Exception as e:
     RULE_ENGINE_AVAILABLE = False
-    print(_("⚠ Rule engine initialization failed: {error}").format(error=e))
+    print(_("⚠ Legacy rule engine initialization failed: {error}"))
 
-# Import AST Engine
+# Import legacy AST Engine (deprecated)
 AST_ENGINE_AVAILABLE = False
 try:
-    from ast_engine.integration import ASTEngine, should_use_ast_engine, is_ast_engine_enabled
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        from ast_engine.integration import ASTEngine, is_ast_engine_enabled
     AST_ENGINE_AVAILABLE = True
-    if is_ast_engine_enabled():
-        print(_("✓ AST engine available (enabled)"))
-    else:
-        print(_("✓ AST engine available (disabled, use USE_AST_ENGINE=true to enable)"))
+    if UNIFIED_ENGINE_AVAILABLE:
+        print(_("⚠ AST engine available but not needed (using unified engine)"))
 except ImportError as e:
     AST_ENGINE_AVAILABLE = False
-    print(_("⚠ AST engine import failed: {error}").format(error=e))
 except Exception as e:
     AST_ENGINE_AVAILABLE = False
-    print(_("⚠ AST engine initialization failed: {error}").format(error=e))
 
 # Try to import HTML report generator
 REPORT_GENERATOR_AVAILABLE = False

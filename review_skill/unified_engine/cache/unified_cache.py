@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ast_engine.nodes import ASTNode
-    from rule_engine.interfaces import Finding
+    from unified_engine.interfaces import Finding
 
 from .memory_cache import MemoryCache
 from .disk_cache import DiskCache

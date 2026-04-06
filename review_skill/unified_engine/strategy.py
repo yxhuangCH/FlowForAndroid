@@ -15,8 +15,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
-    from rule_engine.interfaces import RuleSeverity
-    from .interfaces import UnifiedRule
+    from .interfaces import RuleSeverity, UnifiedRule
 
 
 class ExecutionStrategy(Enum):
@@ -71,7 +70,7 @@ class AdaptiveStrategy:
     def __init__(self):
         """初始化自适应策略"""
         # 导入 RuleSeverity
-        from rule_engine.interfaces import RuleSeverity
+        from unified_engine.interfaces import RuleSeverity
 
         self.severity = RuleSeverity
 

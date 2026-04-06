@@ -1,6 +1,20 @@
-"""Unified Rule Engine
+"""Unified Rule Engine - DEPRECATED
 Provides extensible, high-performance, modular Rule Engine system
+
+DEPRECATION NOTICE:
+This module is deprecated and will be removed in v5.0.0.
+Please use unified_engine instead.
+See: docs/MIGRATION_GUIDE.md
 """
+
+import warnings
+
+warnings.warn(
+    "rule_engine is deprecated and will be removed in v5.0.0. "
+    "Use unified_engine instead. See docs/MIGRATION_GUIDE.md",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 from .interfaces import (
     Rule,

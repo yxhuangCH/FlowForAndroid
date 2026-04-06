@@ -9,8 +9,7 @@
 from typing import List, Dict, Optional, Type, Callable, Any
 import threading
 
-from .interfaces import UnifiedRule, ExecutionMode
-from rule_engine.interfaces import RuleCategory, RuleSeverity
+from .interfaces import UnifiedRule, ExecutionMode, RuleCategory, RuleSeverity
 
 
 class UnifiedRegistry:
