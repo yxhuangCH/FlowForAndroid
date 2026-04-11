@@ -50,14 +50,14 @@ pip install -r requirements.txt
 # Run code review on current git diff
 python3 review.py
 
-# Run all unit tests
-python3 -m unittest discover test_rule
+# Run unified engine unit tests
+python3 -m unittest discover test_unified_engine
 
 # Run specific test file
-python3 -m unittest test_rule.test_batch1_rules
+python3 -m unittest test_unified_engine.test_scheduler
 
 # Run specific test
-python3 -m unittest test_rule.test_batch1_rules.test_memory_leak_static_context
+python3 -m unittest test_unified_engine.test_scheduler.TestRuleScheduler.test_parallel_execution
 
 # Install git pre-push hook
 chmod +x install-git-hook.sh
@@ -167,9 +167,9 @@ app/src/main/java/com/yxhuang/flowforandroid/
 - Naming: `test[MethodName]_[ExpectedBehavior]`
 
 ### Python Tests
-- Located in `review_skill/test_rule/`
-- Each rule file has corresponding test file (e.g., `test_batch1_rules.py`)
-- Tests use `RuleContext` with sample code to verify rule detection
+- Unified engine tests: `review_skill/test_unified_engine/`
+- End-to-end and regression tests: `review_skill/test_unified/`
+- Tests use `UnifiedContext` with sample code to verify rule detection
 
 ## Important File Paths
 
@@ -180,7 +180,7 @@ app/src/main/java/com/yxhuang/flowforandroid/
 | Main review entry | `review_skill/review.py` |
 | Rule definitions | `review_skill/rule_engine/rules/` |
 | AST rules | `review_skill/ast_engine/rules/` |
-| Test suite | `review_skill/test_rule/` |
+| Test suite | `review_skill/test_unified_engine/`, `review_skill/test_unified/` |
 | Reports output | `review_skill/report/` |
 | Gradle version catalog | `gradle/libs.versions.toml` |
 | App build config | `app/build.gradle` |
